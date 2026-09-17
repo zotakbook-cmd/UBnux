@@ -1,5 +1,5 @@
 /* =========================================================
-   UBnux / ZilaBiz
+   UBnux
    MAIN APPLICATION CONTROLLER
    File: assets/js/app.js
 
@@ -16,6 +16,8 @@
    • Module initialization
    • Business pagination
    • Centralized rendering
+   • API timeout protection
+   • Emergency loader protection
 ========================================================= */
 
 (function () {
@@ -79,6 +81,10 @@
     "";
 
 
+  var emergencyLoaderTimer =
+    null;
+
+
   /* =======================================================
      DEFAULT SETTINGS
   ======================================================== */
@@ -121,6 +127,63 @@
 
     MINIMUM_LOADER_TIME =
       350;
+
+  }
+
+
+  /*
+   * API timeout.
+   *
+   * Existing config.API_TIMEOUT or
+   * config.REQUEST_TIMEOUT can override it.
+   *
+   * Default: 30 seconds.
+   */
+
+  var API_TIMEOUT =
+    Number(
+      config.API_TIMEOUT ||
+      config.REQUEST_TIMEOUT ||
+      config.FETCH_TIMEOUT
+    );
+
+
+  if (
+    !Number.isFinite(
+      API_TIMEOUT
+    ) ||
+    API_TIMEOUT <= 0
+  ) {
+
+    API_TIMEOUT =
+      30000;
+
+  }
+
+
+  /*
+   * Emergency loader timeout.
+   *
+   * This is deliberately longer than API timeout.
+   * Even if another module hangs unexpectedly,
+   * the user should not see an infinite loader.
+   */
+
+  var EMERGENCY_LOADER_TIMEOUT =
+    Number(
+      config.EMERGENCY_LOADER_TIMEOUT
+    );
+
+
+  if (
+    !Number.isFinite(
+      EMERGENCY_LOADER_TIMEOUT
+    ) ||
+    EMERGENCY_LOADER_TIMEOUT <= 0
+  ) {
+
+    EMERGENCY_LOADER_TIMEOUT =
+      45000;
 
   }
 
@@ -202,6 +265,146 @@
 
 
   /* =======================================================
+     PROMISE TIMEOUT
+  ======================================================== */
+
+  function withTimeout(
+    promise,
+    timeout,
+    label
+  ) {
+
+    var safeTimeout =
+      Number(timeout);
+
+
+    if (
+      !Number.isFinite(
+        safeTimeout
+      ) ||
+      safeTimeout <= 0
+    ) {
+
+      safeTimeout =
+        API_TIMEOUT;
+
+    }
+
+
+    return new Promise(
+      function (
+        resolve,
+        reject
+      ) {
+
+        var finished =
+          false;
+
+
+        var timer =
+          setTimeout(
+            function () {
+
+              if (
+                finished
+              ) {
+
+                return;
+
+              }
+
+
+              finished =
+                true;
+
+
+              reject(
+                new Error(
+                  (
+                    label ||
+                    "Request"
+                  ) +
+                  " timed out after " +
+                  safeTimeout +
+                  " ms."
+                )
+              );
+
+            },
+            safeTimeout
+          );
+
+
+        Promise
+          .resolve(
+            promise
+          )
+          .then(
+            function (
+              value
+            ) {
+
+              if (
+                finished
+              ) {
+
+                return;
+
+              }
+
+
+              finished =
+                true;
+
+
+              clearTimeout(
+                timer
+              );
+
+
+              resolve(
+                value
+              );
+
+            }
+          )
+          .catch(
+            function (
+              error
+            ) {
+
+              if (
+                finished
+              ) {
+
+                return;
+
+              }
+
+
+              finished =
+                true;
+
+
+              clearTimeout(
+                timer
+              );
+
+
+              reject(
+                error
+              );
+
+            }
+          );
+
+      }
+    );
+
+  }
+
+
+  /* =======================================================
      PAGE LOADER
   ======================================================== */
 
@@ -246,6 +449,11 @@
     );
 
 
+    loader.removeAttribute(
+      "hidden"
+    );
+
+
     loader.setAttribute(
       "aria-hidden",
       "false"
@@ -281,6 +489,16 @@
       "true"
     );
 
+
+    /*
+     * Also support HTML [hidden].
+     */
+
+    loader.setAttribute(
+      "hidden",
+      ""
+    );
+
   }
 
 
@@ -303,6 +521,64 @@
         "Loading...";
 
     }
+
+  }
+
+
+  /* =======================================================
+     EMERGENCY LOADER PROTECTION
+  ======================================================== */
+
+  function startEmergencyLoaderProtection() {
+
+    clearTimeout(
+      emergencyLoaderTimer
+    );
+
+
+    emergencyLoaderTimer =
+      setTimeout(
+        function () {
+
+          if (
+            !isInitializing
+          ) {
+
+            return;
+
+          }
+
+
+          console.error(
+            "[UBnux] Emergency loader timeout reached."
+          );
+
+
+          hidePageLoader();
+
+
+          showToast(
+            "UBnux loading timeout. Page partially loaded hai. Console check karein.",
+            "error"
+          );
+
+
+        },
+        EMERGENCY_LOADER_TIMEOUT
+      );
+
+  }
+
+
+  function stopEmergencyLoaderProtection() {
+
+    clearTimeout(
+      emergencyLoaderTimer
+    );
+
+
+    emergencyLoaderTimer =
+      null;
 
   }
 
@@ -1091,12 +1367,6 @@
     }
 
 
-    /*
-      state.js currently does not expose
-      setBusinessMeta(), so direct property
-      storage is used as a safe fallback.
-    */
-
     if (
       typeof ZilaBiz.setBusinessMeta ===
       "function"
@@ -1120,16 +1390,6 @@
 
   /* =======================================================
      APPLY FILTERS
-     -------------------------------------------------------
-     IMPORTANT FIX
-
-     filters.js exposes:
-
-       ZilaBiz.filters.applyFilters()
-
-     NOT:
-
-       ZilaBiz.applyFilters()
   ======================================================== */
 
   function applyCurrentFilters() {
@@ -1157,16 +1417,6 @@
 
   /* =======================================================
      RESET PAGINATION
-     -------------------------------------------------------
-     IMPORTANT FIX
-
-     state.js exposes:
-
-       ZilaBiz.resetPagination()
-
-     NOT:
-
-       ZilaBiz.businesses.resetPagination()
   ======================================================== */
 
   function resetBusinessPagination() {
@@ -1177,6 +1427,7 @@
     ) {
 
       ZilaBiz.resetPagination();
+
 
       return true;
 
@@ -1195,188 +1446,129 @@
 
   /* =======================================================
      RENDER CURRENT BUSINESS PAGE
-     -------------------------------------------------------
-     IMPORTANT FIX
-
-     businesses.js exposes:
-
-       ZilaBiz.businesses.renderCurrentPage()
-
-     NOT:
-
-       ZilaBiz.businesses.render()
   ======================================================== */
 
-  /* =========================================================
-   RENDER CURRENT BUSINESS PAGE
-   ========================================================= */
+  function renderCurrentBusinessPage() {
 
-function renderCurrentBusinessPage() {
+    try {
 
-  try {
+      if (
+        !ZilaBiz.businesses ||
+        typeof ZilaBiz.businesses.renderCurrentPage !==
+        "function"
+      ) {
 
-    /* =====================================================
-       CHECK BUSINESS MODULE
-    ===================================================== */
+        console.error(
+          "[UBnux] businesses.renderCurrentPage() not available."
+        );
 
-    if (
-      !ZilaBiz.businesses ||
-      typeof ZilaBiz.businesses.renderCurrentPage !== "function"
+
+        return false;
+
+      }
+
+
+      ZilaBiz.businesses.renderCurrentPage();
+
+
+      console.log(
+        "[UBnux] businesses.renderCurrentPage() executed."
+      );
+
+
+      return true;
+
+    } catch (
+      error
     ) {
 
       console.error(
-        "[UBnux] businesses.renderCurrentPage() not available."
+        "[UBnux] Business page render error:",
+        error
       );
+
 
       return false;
 
     }
 
-
-    /* =====================================================
-       CALL ACTUAL BUSINESSES.JS RENDER FUNCTION
-    ===================================================== */
-
-    ZilaBiz.businesses.renderCurrentPage();
-
-
-    console.log(
-      "[UBnux DEBUG] businesses.renderCurrentPage() executed."
-    );
-
-
-    return true;
-
-
-  } catch (error) {
-
-    console.error(
-      "[UBnux] Business page render error:",
-      error
-    );
-
-    return false;
-
   }
 
-}
 
   /* =======================================================
-     CENTRALIZED FILTER + RENDER PIPELINE
+     CENTRALIZED FILTER + RENDER
   ======================================================== */
 
-  /* =========================================================
-   FILTER + RENDER
-   ========================================================= */
+  function renderFilteredData() {
 
-function renderFilteredData() {
+    try {
 
-  try {
-
-    console.log("======================================");
-    console.log(
-      "[UBnux DEBUG] renderFilteredData START"
-    );
+      console.log(
+        "[UBnux] renderFilteredData START"
+      );
 
 
-    /* =====================================================
-       APPLY FILTERS
-       ===================================================== */
-
-    var filtered =
-      applyCurrentFilters();
+      var filtered =
+        applyCurrentFilters();
 
 
-    console.log(
-      "[UBnux DEBUG] FILTER RESULT:",
-      filtered
-    );
-
-    console.log(
-      "[UBnux DEBUG] FILTERED COUNT:",
-      Array.isArray(filtered)
-        ? filtered.length
-        : 0
-    );
+      console.log(
+        "[UBnux] FILTERED COUNT:",
+        Array.isArray(filtered)
+          ? filtered.length
+          : 0
+      );
 
 
-    /* =====================================================
-       RESET PAGINATION
-       ===================================================== */
-
-    var paginationReset =
       resetBusinessPagination();
 
 
-    console.log(
-      "[UBnux DEBUG] PAGINATION RESET:",
-      paginationReset
-    );
+      var rendered =
+        renderCurrentBusinessPage();
 
 
-    /* =====================================================
-       RENDER CURRENT PAGE
-       ===================================================== */
+      if (
+        typeof ZilaBiz.updateUI ===
+        "function"
+      ) {
 
-    var rendered =
-      renderCurrentBusinessPage();
+        ZilaBiz.updateUI();
 
-
-    console.log(
-      "[UBnux DEBUG] BUSINESS PAGE RENDERED:",
-      rendered
-    );
+      }
 
 
-    /* =====================================================
-       UPDATE UI
-       ===================================================== */
+      console.log(
+        "[UBnux] BUSINESS PAGE RENDERED:",
+        rendered
+      );
 
-    if (
-      typeof ZilaBiz.updateUI === "function"
+
+      return true;
+
+    } catch (
+      error
     ) {
 
-      ZilaBiz.updateUI();
+      console.error(
+        "[UBnux] Filter/render error:",
+        error
+      );
+
+
+      return false;
 
     }
 
-
-    console.log(
-      "[UBnux DEBUG] renderFilteredData END"
-    );
-
-    console.log("======================================");
-
-
-    return true;
-
-
-  } catch (error) {
-
-    console.error(
-      "[UBnux] Filter/render error:",
-      error
-    );
-
-    return false;
-
   }
 
-}
 
   /* =======================================================
      RENDER ALL DATA
-     -------------------------------------------------------
-     FIXED VERSION
   ======================================================== */
 
   function renderAllData() {
 
     try {
-
-      /* ===================================================
-         DISTRICT UI
-      ================================================== */
 
       if (
         ZilaBiz.district &&
@@ -1389,10 +1581,6 @@ function renderFilteredData() {
       }
 
 
-      /* ===================================================
-         CATEGORY UI
-      ================================================== */
-
       if (
         ZilaBiz.categories &&
         typeof ZilaBiz.categories.refresh ===
@@ -1403,10 +1591,6 @@ function renderFilteredData() {
 
       }
 
-
-      /* ===================================================
-         FILTER + PAGINATION + BUSINESS RENDER
-      ================================================== */
 
       renderFilteredData();
 
@@ -1442,6 +1626,11 @@ function renderFilteredData() {
       "function"
     ) {
 
+      console.warn(
+        "[UBnux] getInitialDataFast() unavailable."
+      );
+
+
       return {
 
         success:
@@ -1463,8 +1652,17 @@ function renderFilteredData() {
 
     try {
 
+      console.log(
+        "[UBnux] Checking cached data..."
+      );
+
+
       var result =
-        await ZilaBiz.api.getInitialDataFast();
+        await withTimeout(
+          ZilaBiz.api.getInitialDataFast(),
+          API_TIMEOUT,
+          "Cached data request"
+        );
 
 
       if (
@@ -1495,6 +1693,12 @@ function renderFilteredData() {
         setInitialData(
           result.data
         );
+
+
+      console.log(
+        "[UBnux] Cached data received:",
+        data
+      );
 
 
       return {
@@ -1577,8 +1781,17 @@ function renderFilteredData() {
     );
 
 
+    console.log(
+      "[UBnux] Requesting latest API data..."
+    );
+
+
     var result =
-      await ZilaBiz.api.getInitialData();
+      await withTimeout(
+        ZilaBiz.api.getInitialData(),
+        API_TIMEOUT,
+        "Latest data request"
+      );
 
 
     if (
@@ -1609,6 +1822,12 @@ function renderFilteredData() {
       setInitialData(
         result
       );
+
+
+    console.log(
+      "[UBnux] Latest API data received:",
+      data
+    );
 
 
     return {
@@ -1646,8 +1865,17 @@ function renderFilteredData() {
 
     try {
 
+      console.log(
+        "[UBnux] Background refresh started."
+      );
+
+
       var result =
-        await ZilaBiz.api.refreshInitialData();
+        await withTimeout(
+          ZilaBiz.api.refreshInitialData(),
+          API_TIMEOUT,
+          "Background refresh"
+        );
 
 
       if (
@@ -1666,6 +1894,11 @@ function renderFilteredData() {
 
 
       renderAllData();
+
+
+      console.log(
+        "[UBnux] Background refresh completed."
+      );
 
 
       return data;
@@ -2409,6 +2642,7 @@ function renderFilteredData() {
 
       ZilaBiz.openBusinessRegistration();
 
+
       return;
 
     }
@@ -2425,6 +2659,7 @@ function renderFilteredData() {
     ) {
 
       button.click();
+
 
       return;
 
@@ -2618,8 +2853,8 @@ function renderFilteredData() {
   function handleResize() {
 
     /*
-      Intentionally lightweight.
-    */
+     * Intentionally lightweight.
+     */
 
   }
 
@@ -2743,14 +2978,17 @@ function renderFilteredData() {
 
 
     if (
-      yearElement
+      !yearElement
     ) {
 
-      yearElement.textContent =
-        new Date()
-          .getFullYear();
+      return;
 
     }
+
+
+    yearElement.textContent =
+      new Date()
+        .getFullYear();
 
   }
 
@@ -2769,6 +3007,11 @@ function renderFilteredData() {
         "function"
       ) {
 
+        console.log(
+          "[UBnux] Initializing businesses module..."
+        );
+
+
         ZilaBiz.businesses.init();
 
       }
@@ -2779,6 +3022,11 @@ function renderFilteredData() {
         typeof ZilaBiz.categories.init ===
         "function"
       ) {
+
+        console.log(
+          "[UBnux] Initializing categories module..."
+        );
+
 
         ZilaBiz.categories.init();
 
@@ -2791,6 +3039,11 @@ function renderFilteredData() {
         "function"
       ) {
 
+        console.log(
+          "[UBnux] Initializing district module..."
+        );
+
+
         ZilaBiz.district.init();
 
       }
@@ -2801,6 +3054,11 @@ function renderFilteredData() {
         typeof ZilaBiz.modal.init ===
         "function"
       ) {
+
+        console.log(
+          "[UBnux] Initializing modal module..."
+        );
+
 
         ZilaBiz.modal.init();
 
@@ -3161,6 +3419,11 @@ function renderFilteredData() {
 
     }
 
+
+    console.log(
+      "[UBnux] Application initialized successfully."
+    );
+
   }
 
 
@@ -3199,10 +3462,35 @@ function renderFilteredData() {
       Date.now();
 
 
+    startEmergencyLoaderProtection();
+
+
     showPageLoader(
       forceRefresh
         ? "Refreshing UBnux..."
         : "Loading UBnux..."
+    );
+
+
+    console.log(
+      "======================================"
+    );
+
+
+    console.log(
+      "[UBnux] APPLICATION START"
+    );
+
+
+    console.log(
+      "[UBnux] Force refresh:",
+      forceRefresh
+    );
+
+
+    console.log(
+      "[UBnux] API timeout:",
+      API_TIMEOUT
     );
 
 
@@ -3227,6 +3515,12 @@ function renderFilteredData() {
 
       var apiConfigured =
         checkAPIConfiguration();
+
+
+      console.log(
+        "[UBnux] API configured:",
+        apiConfigured
+      );
 
 
       /* ===================================================
@@ -3288,38 +3582,19 @@ function renderFilteredData() {
       );
 
 
-      try {
-
-        cacheResult =
-          await loadCachedData();
-
-      } catch (
-        cacheError
-      ) {
-
-        console.warn(
-          "[UBnux] Cache loading failed:",
-          cacheError
-        );
+      console.log(
+        "[UBnux] STEP 1: Checking cache..."
+      );
 
 
-        cacheResult = {
+      cacheResult =
+        await loadCachedData();
 
-          success:
-            false,
 
-          data:
-            null,
-
-          fromCache:
-            false,
-
-          stale:
-            false
-
-        };
-
-      }
+      console.log(
+        "[UBnux] Cache result:",
+        cacheResult
+      );
 
 
       /* ===================================================
@@ -3331,6 +3606,11 @@ function renderFilteredData() {
         cacheResult.success &&
         cacheResult.data
       ) {
+
+        console.log(
+          "[UBnux] STEP 2: Rendering cached data..."
+        );
+
 
         renderAllData();
 
@@ -3413,6 +3693,11 @@ function renderFilteredData() {
       );
 
 
+      console.log(
+        "[UBnux] STEP 3: Loading latest API data..."
+      );
+
+
       var apiResult =
         await fetchInitialData();
 
@@ -3425,6 +3710,11 @@ function renderFilteredData() {
         apiResult &&
         apiResult.data
       ) {
+
+        console.log(
+          "[UBnux] STEP 4: Rendering latest data..."
+        );
+
 
         renderAllData();
 
@@ -3456,6 +3746,11 @@ function renderFilteredData() {
         );
 
       }
+
+
+      console.log(
+        "[UBnux] APPLICATION STARTUP COMPLETE"
+      );
 
 
       return true;
@@ -3495,6 +3790,11 @@ function renderFilteredData() {
         hasFallbackBusinesses
       ) {
 
+        console.warn(
+          "[UBnux] Falling back to existing data."
+        );
+
+
         renderAllData();
 
 
@@ -3522,6 +3822,13 @@ function renderFilteredData() {
 
     } finally {
 
+      /*
+       * IMPORTANT:
+       *
+       * No matter whether startup succeeds,
+       * fails, or times out, loader is hidden here.
+       */
+
       try {
 
         await waitMinimumLoaderTime();
@@ -3541,8 +3848,21 @@ function renderFilteredData() {
       hidePageLoader();
 
 
+      stopEmergencyLoaderProtection();
+
+
       isInitializing =
         false;
+
+
+      console.log(
+        "[UBnux] Loader hidden."
+      );
+
+
+      console.log(
+        "======================================"
+      );
 
     }
 
@@ -3659,9 +3979,6 @@ function renderFilteredData() {
 
   /* =======================================================
      OPTIONAL COMPATIBILITY ALIASES
-     -------------------------------------------------------
-     Existing older modules agar directly call karein,
-     to application break na ho.
   ======================================================== */
 
   if (
@@ -3680,6 +3997,11 @@ function renderFilteredData() {
   ======================================================== */
 
   function boot() {
+
+    console.log(
+      "[UBnux] DOM ready. Starting application..."
+    );
+
 
     initializeApp(
       false
