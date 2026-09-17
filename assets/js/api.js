@@ -4,13 +4,16 @@
 
    Responsibilities:
    - Google Apps Script API communication
+   - Stable API URL resolution
+   - Reject stale googleusercontent echo URLs
    - Initial data loading
    - Safe timeout handling
-   - Retry handling
+   - Smart retry handling
    - Safe JSON parsing
    - Cache integration
    - Enquiry submission
    - District/location detection
+   - Duplicate request prevention
    - Compatibility aliases
    - Business API compatibility
    ========================================================= */
@@ -47,44 +50,40 @@
 
 
   /* =======================================================
-     API URL
+     CONSTANTS
   ====================================================== */
 
-  var API_URL =
-    String(
-      CONFIG.API_URL ||
-      CONFIG.apiUrl ||
-      ""
-    ).trim();
-
-
-  /* =======================================================
-     API TIMEOUT
-     
-     Google Apps Script may take longer during
-     cold start / redirect / first request.
-
-     Previous:
-       15000 ms
-
-     New:
-       60000 ms
-  ====================================================== */
-
-  var API_TIMEOUT =
+  var DEFAULT_PAGE_SIZE =
     Math.max(
-      10000,
+      1,
       Number(
-        CONFIG.API_TIMEOUT ||
-        CONFIG.apiTimeout ||
-        60000
+        CONFIG.BUSINESS_PAGE_SIZE ||
+        CONFIG.businessPageSize ||
+        18
       )
     );
 
 
-  /* =======================================================
-     RETRY SETTINGS
-  ====================================================== */
+  /*
+   * Default timeout is intentionally shorter than the old
+   * 60000 ms value.
+   *
+   * A permanent 404 should never make the application wait
+   * for one minute.
+   *
+   * It can still be overridden from config.js.
+   */
+
+  var API_TIMEOUT =
+    Math.max(
+      5000,
+      Number(
+        CONFIG.API_TIMEOUT ||
+        CONFIG.apiTimeout ||
+        15000
+      )
+    );
+
 
   var API_RETRIES =
     Math.max(
@@ -112,26 +111,52 @@
 
 
   /* =======================================================
-     HELPERS
+     REQUEST STATE
   ====================================================== */
 
-  function sleep(
-    milliseconds
-  ) {
+  var initialDataPromise =
+    null;
 
-    return new Promise(
-      function (resolve) {
 
-        setTimeout(
-          resolve,
-          milliseconds
-        );
+  var districtsPromise =
+    null;
 
-      }
-    );
 
-  }
+  var categoriesPromise =
+    null;
 
+
+  var businessPromises =
+    {};
+
+
+  var lastInitialData =
+    null;
+
+
+  var lastDistricts =
+    null;
+
+
+  var lastCategories =
+    null;
+
+
+  /* =======================================================
+     API URL STATE
+  ====================================================== */
+
+  var API_URL =
+    "";
+
+
+  var API_URL_SOURCE =
+    "";
+
+
+  /* =======================================================
+     SAFE STRING
+  ====================================================== */
 
   function getSafeString(
     value
@@ -154,13 +179,41 @@
   }
 
 
+  /* =======================================================
+     SLEEP
+  ====================================================== */
+
+  function sleep(
+    milliseconds
+  ) {
+
+    return new Promise(
+      function (resolve) {
+
+        setTimeout(
+          resolve,
+          milliseconds
+        );
+
+      }
+    );
+
+  }
+
+
+  /* =======================================================
+     ERROR MESSAGE
+  ====================================================== */
+
   function getErrorMessage(
     error
   ) {
 
     if (!error) {
 
-      return "Unknown API error.";
+      return (
+        "Unknown API error."
+      );
 
     }
 
@@ -176,6 +229,7 @@
 
 
     if (
+      error.isTimeout ||
       error.name ===
       "AbortError"
     ) {
@@ -183,6 +237,23 @@
       return (
         "UBnux API request timed out. " +
         "Please try again."
+      );
+
+    }
+
+
+    if (
+      error.status
+    ) {
+
+      return (
+        "API request failed (" +
+        error.status +
+        "). " +
+        (
+          error.message ||
+          "Please try again."
+        )
       );
 
     }
@@ -235,12 +306,70 @@
 
 
   /* =======================================================
-     URL VALIDATION
+     URL HELPERS
   ====================================================== */
 
-  function isValidAPIURL() {
+  function normalizeURL(
+    value
+  ) {
 
-    if (!API_URL) {
+    value =
+      getSafeString(
+        value
+      );
+
+
+    if (!value) {
+
+      return "";
+
+    }
+
+
+    /*
+     * Remove accidental surrounding quotes.
+     */
+
+    if (
+      (
+        value.startsWith("\"") &&
+        value.endsWith("\"")
+      ) ||
+      (
+        value.startsWith("'") &&
+        value.endsWith("'")
+      )
+    ) {
+
+      value =
+        value.slice(
+          1,
+          -1
+        ).trim();
+
+    }
+
+
+    return value;
+
+  }
+
+
+  /* =======================================================
+     DETECT STALE GOOGLE USERCONTENT URL
+  ====================================================== */
+
+  function isStaleGoogleUserContentURL(
+    value
+  ) {
+
+    value =
+      normalizeURL(
+        value
+      );
+
+
+    if (!value) {
 
       return false;
 
@@ -251,13 +380,109 @@
 
       var url =
         new URL(
-          API_URL
+          value
+        );
+
+
+      var hostname =
+        String(
+          url.hostname
+        ).toLowerCase();
+
+
+      var pathname =
+        String(
+          url.pathname
+        ).toLowerCase();
+
+
+      /*
+       * Google Apps Script frequently redirects a stable
+       * /exec URL to a temporary googleusercontent endpoint.
+       *
+       * That redirected URL should NOT be stored as the
+       * permanent API URL.
+       */
+
+      if (
+        hostname ===
+          "script.googleusercontent.com" &&
+        pathname.indexOf(
+          "/macros/echo"
+        ) === 0
+      ) {
+
+        return true;
+
+      }
+
+    } catch (error) {
+
+      return false;
+
+    }
+
+
+    return false;
+
+  }
+
+
+  /* =======================================================
+     VALID API URL
+  ====================================================== */
+
+  function isValidAPIURL(
+    value
+  ) {
+
+    value =
+      normalizeURL(
+        value ||
+        API_URL
+      );
+
+
+    if (!value) {
+
+      return false;
+
+    }
+
+
+    /*
+     * Never accept the temporary echo endpoint as the
+     * permanent UBnux API URL.
+     */
+
+    if (
+      isStaleGoogleUserContentURL(
+        value
+      )
+    ) {
+
+      return false;
+
+    }
+
+
+    try {
+
+      var url =
+        new URL(
+          value
         );
 
 
       return (
-        url.protocol === "https:" ||
-        url.protocol === "http:"
+        (
+          url.protocol ===
+          "https:"
+        ) ||
+        (
+          url.protocol ===
+          "http:"
+        )
       );
 
     } catch (error) {
@@ -265,6 +490,463 @@
       return false;
 
     }
+
+  }
+
+
+  /* =======================================================
+     READ META API URL
+  ====================================================== */
+
+  function getMetaAPIURL() {
+
+    var meta =
+      document.querySelector(
+        'meta[name="ubnux-api-url"]'
+      );
+
+
+    if (!meta) {
+
+      meta =
+        document.querySelector(
+          'meta[name="zilabiz-api-url"]'
+        );
+
+    }
+
+
+    if (!meta) {
+
+      meta =
+        document.querySelector(
+          'meta[name="api-url"]'
+        );
+
+    }
+
+
+    if (!meta) {
+
+      return "";
+
+    }
+
+
+    return normalizeURL(
+      meta.getAttribute(
+        "content"
+      )
+    );
+
+  }
+
+
+  /* =======================================================
+     READ LOCAL STORAGE API URL
+  ====================================================== */
+
+  function getStoredAPIURL() {
+
+    var keys = [
+
+      "UBnux_API_URL",
+      "UBNUX_API_URL",
+      "ZilaBiz_API_URL",
+      "ZILABIZ_API_URL",
+      "apiUrl",
+      "API_URL"
+
+    ];
+
+
+    for (
+      var i = 0;
+      i < keys.length;
+      i++
+    ) {
+
+      try {
+
+        var value =
+          localStorage.getItem(
+            keys[i]
+          );
+
+
+        if (
+          isValidAPIURL(
+            value
+          )
+        ) {
+
+          return normalizeURL(
+            value
+          );
+
+        }
+
+      } catch (error) {}
+
+    }
+
+
+    return "";
+
+  }
+
+
+  /* =======================================================
+     GET CONFIG API CANDIDATES
+  ====================================================== */
+
+  function getConfigAPICandidates() {
+
+    return [
+
+      {
+        value:
+          CONFIG.API_URL,
+
+        source:
+          "CONFIG.API_URL"
+
+      },
+
+      {
+        value:
+          CONFIG.apiUrl,
+
+        source:
+          "CONFIG.apiUrl"
+
+      },
+
+      {
+        value:
+          CONFIG.API_BASE_URL,
+
+        source:
+          "CONFIG.API_BASE_URL"
+
+      },
+
+      {
+        value:
+          CONFIG.apiBaseUrl,
+
+        source:
+          "CONFIG.apiBaseUrl"
+
+      },
+
+      {
+        value:
+          CONFIG.GAS_API_URL,
+
+        source:
+          "CONFIG.GAS_API_URL"
+
+      },
+
+      {
+        value:
+          CONFIG.gasApiUrl,
+
+        source:
+          "CONFIG.gasApiUrl"
+
+      },
+
+      {
+        value:
+          CONFIG.WEB_APP_URL,
+
+        source:
+          "CONFIG.WEB_APP_URL"
+
+      },
+
+      {
+        value:
+          CONFIG.webAppUrl,
+
+        source:
+          "CONFIG.webAppUrl"
+
+      },
+
+      {
+        value:
+          CONFIG.SCRIPT_URL,
+
+        source:
+          "CONFIG.SCRIPT_URL"
+
+      },
+
+      {
+        value:
+          CONFIG.scriptUrl,
+
+        source:
+          "CONFIG.scriptUrl"
+
+      }
+
+    ];
+
+  }
+
+
+  /* =======================================================
+     RESOLVE API URL
+  ====================================================== */
+
+  function resolveAPIURL() {
+
+    var candidates =
+      getConfigAPICandidates();
+
+
+    /*
+     * IMPORTANT:
+     *
+     * First pass searches only for stable URLs.
+     *
+     * This means if API_URL contains an old
+     * googleusercontent echo URL but another config
+     * property contains the actual /exec URL, the stable
+     * URL wins.
+     */
+
+    for (
+      var i = 0;
+      i < candidates.length;
+      i++
+    ) {
+
+      var candidate =
+        candidates[i];
+
+
+      var value =
+        normalizeURL(
+          candidate.value
+        );
+
+
+      if (
+        isValidAPIURL(
+          value
+        )
+      ) {
+
+        API_URL =
+          value;
+
+        API_URL_SOURCE =
+          candidate.source;
+
+        return API_URL;
+
+      }
+
+    }
+
+
+    /*
+     * Meta tag fallback.
+     */
+
+    var metaURL =
+      getMetaAPIURL();
+
+
+    if (
+      isValidAPIURL(
+        metaURL
+      )
+    ) {
+
+      API_URL =
+        metaURL;
+
+      API_URL_SOURCE =
+        "meta";
+
+      return API_URL;
+
+    }
+
+
+    /*
+     * localStorage fallback.
+     *
+     * Only stable URLs are accepted.
+     */
+
+    var storedURL =
+      getStoredAPIURL();
+
+
+    if (
+      isValidAPIURL(
+        storedURL
+      )
+    ) {
+
+      API_URL =
+        storedURL;
+
+      API_URL_SOURCE =
+        "localStorage";
+
+      return API_URL;
+
+    }
+
+
+    /*
+     * Nothing valid found.
+     */
+
+    API_URL =
+      "";
+
+
+    API_URL_SOURCE =
+      "";
+
+
+    return "";
+
+  }
+
+
+  /*
+   * Resolve immediately during script initialization.
+   */
+
+  resolveAPIURL();
+
+
+  /* =======================================================
+     CLEAR STALE API URLS
+  ====================================================== */
+
+  function clearStaleStoredAPIURLs() {
+
+    var keys = [
+
+      "UBnux_API_URL",
+      "UBNUX_API_URL",
+      "ZilaBiz_API_URL",
+      "ZILABIZ_API_URL",
+      "apiUrl",
+      "API_URL"
+
+    ];
+
+
+    for (
+      var i = 0;
+      i < keys.length;
+      i++
+    ) {
+
+      try {
+
+        var value =
+          localStorage.getItem(
+            keys[i]
+          );
+
+
+        if (
+          isStaleGoogleUserContentURL(
+            value
+          )
+        ) {
+
+          localStorage.removeItem(
+            keys[i]
+          );
+
+        }
+
+      } catch (error) {}
+
+    }
+
+  }
+
+
+  clearStaleStoredAPIURLs();
+
+
+  /*
+   * Resolve one more time after stale localStorage values
+   * have been removed.
+   */
+
+  resolveAPIURL();
+
+
+  /* =======================================================
+     SET API URL
+  ====================================================== */
+
+  function setAPIURL(
+    value,
+    save
+  ) {
+
+    value =
+      normalizeURL(
+        value
+      );
+
+
+    if (
+      !isValidAPIURL(
+        value
+      )
+    ) {
+
+      throw new Error(
+        "Invalid UBnux API URL. " +
+        "Use the stable Google Apps Script /exec URL."
+      );
+
+    }
+
+
+    API_URL =
+      value;
+
+
+    API_URL_SOURCE =
+      "runtime";
+
+
+    if (
+      save !== false
+    ) {
+
+      try {
+
+        localStorage.setItem(
+          "UBnux_API_URL",
+          API_URL
+        );
+
+      } catch (error) {}
+
+    }
+
+
+    return API_URL;
 
   }
 
@@ -278,12 +960,27 @@
     params
   ) {
 
+    /*
+     * Try resolving again in case config was initialized
+     * after this file was loaded.
+     */
+
+    if (
+      !isValidAPIURL()
+    ) {
+
+      resolveAPIURL();
+
+    }
+
+
     if (
       !isValidAPIURL()
     ) {
 
       throw new Error(
-        "UBnux API URL is not configured."
+        "UBnux API URL is not configured. " +
+        "Please configure the stable Apps Script /exec URL."
       );
 
     }
@@ -307,7 +1004,8 @@
 
     if (
       params &&
-      typeof params === "object"
+      typeof params ===
+      "object"
     ) {
 
       Object.keys(
@@ -330,7 +1028,8 @@
 
 
           if (
-            typeof value === "object"
+            typeof value ===
+            "object"
           ) {
 
             try {
@@ -351,7 +1050,9 @@
 
           url.searchParams.set(
             key,
-            String(value)
+            String(
+              value
+            )
           );
 
         }
@@ -367,11 +1068,6 @@
 
   /* =======================================================
      FETCH WITH TIMEOUT
-
-     Important:
-     - Each request gets its own AbortController.
-     - Timeout is cleared in finally.
-     - AbortError is converted into a clean timeout error.
   ====================================================== */
 
   async function fetchWithTimeout(
@@ -459,7 +1155,9 @@
 
     } finally {
 
-      if (timeoutId !== null) {
+      if (
+        timeoutId !== null
+      ) {
 
         clearTimeout(
           timeoutId
@@ -507,6 +1205,10 @@
     }
 
 
+    /*
+     * Empty successful response.
+     */
+
     if (!text) {
 
       if (
@@ -518,9 +1220,21 @@
       }
 
 
-      throw new Error(
-        "Server returned an empty response."
-      );
+      var emptyError =
+        new Error(
+          "Server returned an empty response."
+        );
+
+
+      emptyError.status =
+        response.status;
+
+
+      emptyError.httpStatus =
+        response.status;
+
+
+      throw emptyError;
 
     }
 
@@ -528,6 +1242,10 @@
     var parsed =
       null;
 
+
+    /*
+     * First attempt: complete JSON.
+     */
 
     try {
 
@@ -538,9 +1256,10 @@
 
     } catch (error) {
 
+
       /*
-       * Apps Script / proxy response
-       * may contain extra text around JSON.
+       * Second attempt:
+       * Find JSON object inside possible wrapper text.
        */
 
       var firstBrace =
@@ -586,31 +1305,58 @@
     }
 
 
+    /*
+     * Invalid JSON.
+     */
+
     if (
       parsed === null
     ) {
+
+      var invalidError;
+
 
       if (
         !response.ok
       ) {
 
-        throw new Error(
-          "Server error: " +
-          text.slice(
-            0,
-            300
-          )
-        );
+        invalidError =
+          new Error(
+            "Server error (" +
+            response.status +
+            "): " +
+            text.slice(
+              0,
+              300
+            )
+          );
+
+      } else {
+
+        invalidError =
+          new Error(
+            "Server returned invalid JSON."
+          );
 
       }
 
 
-      throw new Error(
-        "Server returned invalid JSON."
-      );
+      invalidError.status =
+        response.status;
+
+
+      invalidError.httpStatus =
+        response.status;
+
+
+      throw invalidError;
 
     }
 
+
+    /*
+     * HTTP error even when JSON is valid.
+     */
 
     if (
       !response.ok
@@ -619,14 +1365,32 @@
       var serverMessage =
         parsed.message ||
         parsed.error ||
-        "Server request failed.";
+        (
+          "Server request failed."
+        );
 
 
-      throw new Error(
-        String(
-          serverMessage
-        )
-      );
+      var httpError =
+        new Error(
+          String(
+            serverMessage
+          )
+        );
+
+
+      httpError.status =
+        response.status;
+
+
+      httpError.httpStatus =
+        response.status;
+
+
+      httpError.serverResponse =
+        parsed;
+
+
+      throw httpError;
 
     }
 
@@ -637,139 +1401,85 @@
 
 
   /* =======================================================
-     NORMALIZE INITIAL DATA
+     SHOULD RETRY ERROR
   ====================================================== */
 
-  function normalizeInitialData(
-    response
+  function shouldRetryError(
+    error
   ) {
 
-    response =
-      response ||
-      {};
+    if (!error) {
+
+      return true;
+
+    }
 
 
-    var source =
-      response.data &&
-      typeof response.data === "object"
+    /*
+     * Configuration errors must never retry.
+     */
 
-        ? response.data
-
-        : response;
-
-
-    var districts =
-      Array.isArray(
-        source.districts
+    if (
+      error.message &&
+      (
+        error.message.indexOf(
+          "API URL"
+        ) !== -1
       )
-        ? source.districts
-        : [];
+    ) {
+
+      return false;
+
+    }
 
 
-    var categories =
-      Array.isArray(
-        source.categories
-      )
-        ? source.categories
-        : [];
+    /*
+     * HTTP status.
+     */
 
-
-    var businesses =
-      Array.isArray(
-        source.businesses
-      )
-        ? source.businesses
-        : [];
-
-
-    var meta =
-      source.businessMeta &&
-      typeof source.businessMeta === "object"
-
-        ? source.businessMeta
-
-        : {};
-
-
-    var total =
+    var status =
       Number(
-        meta.total ??
-        businesses.length
-      );
-
-
-    var offset =
-      Number(
-        meta.offset ??
+        error.status ||
+        error.httpStatus ||
         0
       );
 
 
-    var limit =
-      Number(
-        meta.limit ??
-        businesses.length
-      );
+    /*
+     * 4xx errors are generally permanent for the
+     * current request and should not be retried.
+     *
+     * This specifically fixes repeated 404 calls.
+     */
+
+    if (
+      status >= 400 &&
+      status < 500
+    ) {
+
+      return false;
+
+    }
 
 
-    var hasMore =
-      Boolean(
-        meta.hasMore
-      );
+    /*
+     * Timeouts can be retried.
+     */
+
+    if (
+      error.isTimeout
+    ) {
+
+      return true;
+
+    }
 
 
-    return {
+    /*
+     * Network errors can be retried.
+     */
 
-      success:
-        response.success !== false,
-
-      message:
-        getSafeString(
-          response.message
-        ),
-
-      data: {
-
-        districts:
-          districts,
-
-        categories:
-          categories,
-
-        businesses:
-          businesses,
-
-        businessMeta: {
-
-          total:
-            Number.isFinite(
-              total
-            )
-              ? total
-              : businesses.length,
-
-          offset:
-            Number.isFinite(
-              offset
-            )
-              ? offset
-              : 0,
-
-          limit:
-            Number.isFinite(
-              limit
-            )
-              ? limit
-              : businesses.length,
-
-          hasMore:
-            hasMore
-
-        }
-
-      }
-
-    };
+    return true;
 
   }
 
@@ -801,7 +1511,10 @@
         1,
         Number(
           options.retries ??
-          API_RETRIES + 1
+          (
+            API_RETRIES +
+            1
+          )
         )
       );
 
@@ -833,11 +1546,6 @@
 
               },
 
-              /*
-               * Do not let browser cache
-               * return an old Apps Script response.
-               */
-
               cache:
                 "no-store"
 
@@ -860,14 +1568,12 @@
 
 
         /*
-         * Do not retry configuration errors.
+         * Do not retry permanent errors.
          */
 
         if (
-          error &&
-          (
-            error.message ===
-            "UBnux API URL is not configured."
+          !shouldRetryError(
+            error
           )
         ) {
 
@@ -875,10 +1581,6 @@
 
         }
 
-
-        /*
-         * Retry remaining attempts.
-         */
 
         if (
           attempt <
@@ -888,7 +1590,8 @@
           await sleep(
             RETRY_DELAY *
             (
-              attempt + 1
+              attempt +
+              1
             )
           );
 
@@ -899,17 +1602,11 @@
     }
 
 
-    if (
-      lastError
-    ) {
-
-      throw lastError;
-
-    }
-
-
-    throw new Error(
-      "API request failed."
+    throw (
+      lastError ||
+      new Error(
+        "API request failed."
+      )
     );
 
   }
@@ -934,6 +1631,15 @@
       !isValidAPIURL()
     ) {
 
+      resolveAPIURL();
+
+    }
+
+
+    if (
+      !isValidAPIURL()
+    ) {
+
       throw new Error(
         "UBnux API URL is not configured."
       );
@@ -952,7 +1658,10 @@
         1,
         Number(
           options.retries ??
-          API_RETRIES + 1
+          (
+            API_RETRIES +
+            1
+          )
         )
       );
 
@@ -1012,6 +1721,17 @@
 
 
         if (
+          !shouldRetryError(
+            error
+          )
+        ) {
+
+          break;
+
+        }
+
+
+        if (
           attempt <
           attempts - 1
         ) {
@@ -1019,7 +1739,8 @@
           await sleep(
             RETRY_DELAY *
             (
-              attempt + 1
+              attempt +
+              1
             )
           );
 
@@ -1036,6 +1757,196 @@
         "POST request failed."
       )
     );
+
+  }
+
+
+  /* =======================================================
+     NORMALIZE INITIAL DATA
+  ====================================================== */
+
+  function normalizeInitialData(
+    response
+  ) {
+
+    response =
+      response ||
+      {};
+
+
+    var source =
+      response.data &&
+      typeof response.data ===
+      "object"
+
+        ? response.data
+
+        : response;
+
+
+    var districts =
+      Array.isArray(
+        source.districts
+      )
+        ? source.districts
+        : [];
+
+
+    var categories =
+      Array.isArray(
+        source.categories
+      )
+        ? source.categories
+        : [];
+
+
+    var businesses =
+      Array.isArray(
+        source.businesses
+      )
+        ? source.businesses
+        : [];
+
+
+    var meta =
+      source.businessMeta &&
+      typeof source.businessMeta ===
+      "object"
+
+        ? source.businessMeta
+
+        : {};
+
+
+    var total =
+      Number(
+        meta.total ??
+        businesses.length
+      );
+
+
+    var offset =
+      Number(
+        meta.offset ??
+        0
+      );
+
+
+    var limit =
+      Number(
+        meta.limit ??
+        businesses.length
+      );
+
+
+    var hasMore =
+      Boolean(
+        meta.hasMore
+      );
+
+
+    return {
+
+      success:
+        response.success !==
+        false,
+
+      message:
+        getSafeString(
+          response.message
+        ),
+
+      data: {
+
+        districts:
+          districts,
+
+        categories:
+          categories,
+
+        businesses:
+          businesses,
+
+        businessMeta: {
+
+          total:
+            Number.isFinite(
+              total
+            )
+              ? total
+              : businesses.length,
+
+          offset:
+            Number.isFinite(
+              offset
+            )
+              ? offset
+              : 0,
+
+          limit:
+            Number.isFinite(
+              limit
+            )
+              ? limit
+              : businesses.length,
+
+          hasMore:
+            hasMore
+
+        }
+
+      }
+
+    };
+
+  }
+
+
+  /* =======================================================
+     SAVE INITIAL DATA TO CACHE
+  ====================================================== */
+
+  function saveInitialDataToCache(
+    normalized
+  ) {
+
+    try {
+
+      if (
+        App.cache &&
+        typeof App.cache
+          .setInitialDataCache ===
+        "function"
+      ) {
+
+        App.cache.setInitialDataCache(
+          normalized
+        );
+
+        return;
+
+      }
+
+
+      if (
+        typeof App.setInitialDataCache ===
+        "function"
+      ) {
+
+        App.setInitialDataCache(
+          normalized
+        );
+
+      }
+
+    } catch (cacheError) {
+
+      /*
+       * Cache failure must never break
+       * a successful API request.
+       */
+
+    }
 
   }
 
@@ -1064,10 +1975,7 @@
 
           limit:
             options.limit ??
-            Number(
-              CONFIG.BUSINESS_PAGE_SIZE ||
-              18
-            )
+            DEFAULT_PAGE_SIZE
 
         },
         options
@@ -1081,41 +1989,28 @@
 
 
     /*
-     * Save fresh data into cache.
+     * Keep in-memory copy.
      */
 
-    try {
+    lastInitialData =
+      normalized;
 
-      if (
-        App.cache &&
-        typeof App.cache
-          .setInitialDataCache ===
-        "function"
-      ) {
 
-        App.cache.setInitialDataCache(
-          normalized
-        );
+    lastDistricts =
+      normalized.data.districts;
 
-      } else if (
-        typeof App.setInitialDataCache ===
-        "function"
-      ) {
 
-        App.setInitialDataCache(
-          normalized
-        );
+    lastCategories =
+      normalized.data.categories;
 
-      }
 
-    } catch (cacheError) {
+    /*
+     * Save fresh data to cache.
+     */
 
-      /*
-       * Cache failure must never
-       * break successful API request.
-       */
-
-    }
+    saveInitialDataToCache(
+      normalized
+    );
 
 
     return normalized;
@@ -1136,14 +2031,32 @@
       {};
 
 
+    /*
+     * Re-resolve API URL.
+     */
+
+    if (
+      !isValidAPIURL()
+    ) {
+
+      resolveAPIURL();
+
+    }
+
+
     if (
       !isValidAPIURL()
     ) {
 
       var configError =
         new Error(
-          "UBnux API URL is missing or invalid."
+          "UBnux API URL is missing or invalid. " +
+          "Configure the stable Google Apps Script /exec URL."
         );
+
+
+      configError.code =
+        "API_URL_INVALID";
 
 
       if (
@@ -1196,9 +2109,35 @@
     }
 
 
-    return fetchInitialData(
-      options
-    );
+    /*
+     * Prevent duplicate initial-data requests.
+     */
+
+    if (
+      initialDataPromise
+    ) {
+
+      return initialDataPromise;
+
+    }
+
+
+    initialDataPromise =
+      fetchInitialData(
+        options
+      );
+
+
+    try {
+
+      return await initialDataPromise;
+
+    } finally {
+
+      initialDataPromise =
+        null;
+
+    }
 
   }
 
@@ -1217,7 +2156,20 @@
 
 
     /*
-     * First try valid cache.
+     * First try in-memory data.
+     */
+
+    if (
+      lastInitialData
+    ) {
+
+      return lastInitialData;
+
+    }
+
+
+    /*
+     * Then try valid cache.
      */
 
     try {
@@ -1238,9 +2190,29 @@
           });
 
 
-        if (cached) {
+        if (
+          cached
+        ) {
 
-          return cached;
+          var normalizedCached =
+            normalizeInitialData(
+              cached
+            );
+
+
+          lastInitialData =
+            normalizedCached;
+
+
+          lastDistricts =
+            normalizedCached.data.districts;
+
+
+          lastCategories =
+            normalizedCached.data.categories;
+
+
+          return normalizedCached;
 
         }
 
@@ -1279,6 +2251,12 @@
       {};
 
 
+    /*
+     * A refresh should be an actual network request.
+     *
+     * It still uses the same duplicate protection.
+     */
+
     return getInitialData(
       {
 
@@ -1288,14 +2266,14 @@
 
         limit:
           options.limit ??
-          Number(
-            CONFIG.BUSINESS_PAGE_SIZE ||
-            18
-          ),
+          DEFAULT_PAGE_SIZE,
 
         retries:
           options.retries ??
-          API_RETRIES + 1
+          (
+            API_RETRIES +
+            1
+          )
 
       }
     );
@@ -1316,111 +2294,199 @@
       {};
 
 
-    var response =
-      await request(
-        "getbusinesses",
-        {
-
-          offset:
-            options.offset ??
-            0,
-
-          limit:
-            options.limit ??
-            Number(
-              CONFIG.BUSINESS_PAGE_SIZE ||
-              18
-            ),
-
-          district:
-            options.district ??
-            "",
-
-          category:
-            options.category ??
-            "",
-
-          search:
-            options.search ??
-            "",
-
-          sort:
-            options.sort ??
-            ""
-
-        },
-        options
-      );
+    var offset =
+      options.offset ??
+      0;
 
 
-    var source =
-      response.data &&
-      typeof response.data === "object"
-
-        ? response.data
-
-        : response;
+    var limit =
+      options.limit ??
+      DEFAULT_PAGE_SIZE;
 
 
-    var businesses =
-      Array.isArray(
-        source.businesses
-      )
-        ? source.businesses
-        : [];
+    var district =
+      options.district ??
+      "";
 
 
-    var meta =
-      source.businessMeta &&
-      typeof source.businessMeta === "object"
-
-        ? source.businessMeta
-
-        : {};
+    var category =
+      options.category ??
+      "";
 
 
-    return {
+    var search =
+      options.search ??
+      "";
 
-      success:
-        response.success !== false,
 
-      message:
-        response.message ||
-        "",
+    var sort =
+      options.sort ??
+      "";
 
-      businesses:
-        businesses,
 
-      businessMeta: {
+    /*
+     * Build a stable request key so identical simultaneous
+     * business requests do not hit Apps Script repeatedly.
+     */
 
-        total:
-          Number(
-            meta.total ??
-            businesses.length
-          ),
+    var requestKey =
+      JSON.stringify({
 
         offset:
-          Number(
-            meta.offset ??
-            options.offset ??
-            0
-          ),
+          offset,
 
         limit:
-          Number(
-            meta.limit ??
-            options.limit ??
-            businesses.length
-          ),
+          limit,
 
-        hasMore:
-          Boolean(
-            meta.hasMore
+        district:
+          district,
+
+        category:
+          category,
+
+        search:
+          search,
+
+        sort:
+          sort
+
+      });
+
+
+    if (
+      businessPromises[
+        requestKey
+      ]
+    ) {
+
+      return businessPromises[
+        requestKey
+      ];
+
+    }
+
+
+    var promise =
+      (async function () {
+
+        var response =
+          await request(
+            "getbusinesses",
+            {
+
+              offset:
+                offset,
+
+              limit:
+                limit,
+
+              district:
+                district,
+
+              category:
+                category,
+
+              search:
+                search,
+
+              sort:
+                sort
+
+            },
+            options
+          );
+
+
+        var source =
+          response.data &&
+          typeof response.data ===
+          "object"
+
+            ? response.data
+
+            : response;
+
+
+        var businesses =
+          Array.isArray(
+            source.businesses
           )
+            ? source.businesses
+            : [];
 
-      }
 
-    };
+        var meta =
+          source.businessMeta &&
+          typeof source.businessMeta ===
+          "object"
+
+            ? source.businessMeta
+
+            : {};
+
+
+        return {
+
+          success:
+            response.success !==
+            false,
+
+          message:
+            response.message ||
+            "",
+
+          businesses:
+            businesses,
+
+          businessMeta: {
+
+            total:
+              Number(
+                meta.total ??
+                businesses.length
+              ),
+
+            offset:
+              Number(
+                meta.offset ??
+                offset
+              ),
+
+            limit:
+              Number(
+                meta.limit ??
+                limit
+              ),
+
+            hasMore:
+              Boolean(
+                meta.hasMore
+              )
+
+          }
+
+        };
+
+      })();
+
+
+    businessPromises[
+      requestKey
+    ] =
+      promise;
+
+
+    try {
+
+      return await promise;
+
+    } finally {
+
+      delete businessPromises[
+        requestKey
+      ];
+
+    }
 
   }
 
@@ -1431,38 +2497,165 @@
 
   async function getDistricts() {
 
-    var response =
-      await request(
-        "getdistricts"
-      );
+    /*
+     * If initial data already contains districts,
+     * do NOT make another API request.
+     */
+
+    if (
+      Array.isArray(
+        lastDistricts
+      ) &&
+      lastDistricts.length > 0
+    ) {
+
+      return {
+
+        success:
+          true,
+
+        message:
+          "",
+
+        districts:
+          lastDistricts
+
+      };
+
+    }
 
 
-    var source =
-      response.data &&
-      typeof response.data === "object"
+    /*
+     * If initial data is currently being loaded, wait for it.
+     */
 
-        ? response.data
+    if (
+      initialDataPromise
+    ) {
 
-        : response;
+      try {
+
+        var initial =
+          await initialDataPromise;
 
 
-    return {
+        var initialDistricts =
+          initial &&
+          initial.data &&
+          Array.isArray(
+            initial.data.districts
+          )
 
-      success:
-        response.success !== false,
+            ? initial.data.districts
+            : [];
 
-      message:
-        response.message ||
-        "",
 
-      districts:
-        Array.isArray(
-          source.districts
-        )
-          ? source.districts
-          : []
+        if (
+          initialDistricts.length > 0
+        ) {
 
-    };
+          lastDistricts =
+            initialDistricts;
+
+
+          return {
+
+            success:
+              true,
+
+            message:
+              "",
+
+            districts:
+              initialDistricts
+
+          };
+
+        }
+
+      } catch (error) {
+
+        /*
+         * Continue to dedicated endpoint.
+         */
+
+      }
+
+    }
+
+
+    /*
+     * Prevent duplicate district requests.
+     */
+
+    if (
+      districtsPromise
+    ) {
+
+      return districtsPromise;
+
+    }
+
+
+    districtsPromise =
+      (async function () {
+
+        var response =
+          await request(
+            "getdistricts"
+          );
+
+
+        var source =
+          response.data &&
+          typeof response.data ===
+          "object"
+
+            ? response.data
+
+            : response;
+
+
+        var districts =
+          Array.isArray(
+            source.districts
+          )
+            ? source.districts
+            : [];
+
+
+        lastDistricts =
+          districts;
+
+
+        return {
+
+          success:
+            response.success !==
+            false,
+
+          message:
+            response.message ||
+            "",
+
+          districts:
+            districts
+
+        };
+
+      })();
+
+
+    try {
+
+      return await districtsPromise;
+
+    } finally {
+
+      districtsPromise =
+        null;
+
+    }
 
   }
 
@@ -1473,38 +2666,165 @@
 
   async function getCategories() {
 
-    var response =
-      await request(
-        "getcategories"
-      );
+    /*
+     * If initial data already contains categories,
+     * do NOT make another API request.
+     */
+
+    if (
+      Array.isArray(
+        lastCategories
+      ) &&
+      lastCategories.length > 0
+    ) {
+
+      return {
+
+        success:
+          true,
+
+        message:
+          "",
+
+        categories:
+          lastCategories
+
+      };
+
+    }
 
 
-    var source =
-      response.data &&
-      typeof response.data === "object"
+    /*
+     * If initial data is currently loading, wait for it.
+     */
 
-        ? response.data
+    if (
+      initialDataPromise
+    ) {
 
-        : response;
+      try {
+
+        var initial =
+          await initialDataPromise;
 
 
-    return {
+        var initialCategories =
+          initial &&
+          initial.data &&
+          Array.isArray(
+            initial.data.categories
+          )
 
-      success:
-        response.success !== false,
+            ? initial.data.categories
+            : [];
 
-      message:
-        response.message ||
-        "",
 
-      categories:
-        Array.isArray(
-          source.categories
-        )
-          ? source.categories
-          : []
+        if (
+          initialCategories.length > 0
+        ) {
 
-    };
+          lastCategories =
+            initialCategories;
+
+
+          return {
+
+            success:
+              true,
+
+            message:
+              "",
+
+            categories:
+              initialCategories
+
+          };
+
+        }
+
+      } catch (error) {
+
+        /*
+         * Continue to dedicated endpoint.
+         */
+
+      }
+
+    }
+
+
+    /*
+     * Prevent duplicate category requests.
+     */
+
+    if (
+      categoriesPromise
+    ) {
+
+      return categoriesPromise;
+
+    }
+
+
+    categoriesPromise =
+      (async function () {
+
+        var response =
+          await request(
+            "getcategories"
+          );
+
+
+        var source =
+          response.data &&
+          typeof response.data ===
+          "object"
+
+            ? response.data
+
+            : response;
+
+
+        var categories =
+          Array.isArray(
+            source.categories
+          )
+            ? source.categories
+            : [];
+
+
+        lastCategories =
+          categories;
+
+
+        return {
+
+          success:
+            response.success !==
+            false,
+
+          message:
+            response.message ||
+            "",
+
+          categories:
+            categories
+
+        };
+
+      })();
+
+
+    try {
+
+      return await categoriesPromise;
+
+    } finally {
+
+      categoriesPromise =
+        null;
+
+    }
 
   }
 
@@ -1607,7 +2927,8 @@
       return {
 
         success:
-          response.success !== false,
+          response.success !==
+          false,
 
         message:
           response.message ||
@@ -1637,7 +2958,8 @@
         return {
 
           success:
-            getResponse.success !== false,
+            getResponse.success !==
+            false,
 
           message:
             getResponse.message ||
@@ -1748,7 +3070,8 @@
 
     var source =
       response.data &&
-      typeof response.data === "object"
+      typeof response.data ===
+      "object"
 
         ? response.data
 
@@ -1758,7 +3081,8 @@
     return {
 
       success:
-        response.success !== false,
+        response.success !==
+        false,
 
       message:
         response.message ||
@@ -1820,14 +3144,6 @@
 
   /* =======================================================
      GENERIC POST API ACTION
-
-     Useful for future business dashboard APIs:
-       businessregister
-       businesslogin
-       resetbusinesspassword
-       updatebusinessprofile
-       savebusinessservice
-       etc.
   ====================================================== */
 
   async function post(
@@ -1859,6 +3175,14 @@
       url:
         API_URL,
 
+      urlSource:
+        API_URL_SOURCE,
+
+      isTemporaryGoogleURL:
+        isStaleGoogleUserContentURL(
+          API_URL
+        ),
+
       timeout:
         API_TIMEOUT,
 
@@ -1869,6 +3193,36 @@
         REQUIRE_API
 
     };
+
+  }
+
+
+  /* =======================================================
+     RESET API MEMORY CACHE
+  ====================================================== */
+
+  function clearAPIMemoryCache() {
+
+    lastInitialData =
+      null;
+
+    lastDistricts =
+      null;
+
+    lastCategories =
+      null;
+
+    initialDataPromise =
+      null;
+
+    districtsPromise =
+      null;
+
+    categoriesPromise =
+      null;
+
+    businessPromises =
+      {};
 
   }
 
@@ -1902,6 +3256,15 @@
 
     getStatus:
       getStatus,
+
+    setAPIURL:
+      setAPIURL,
+
+    resolveAPIURL:
+      resolveAPIURL,
+
+    clearAPIMemoryCache:
+      clearAPIMemoryCache,
 
     getInitialData:
       getInitialData,
@@ -2043,6 +3406,20 @@
 
   window.ZilaBiz =
     App;
+
+
+  /* =======================================================
+     DEBUG
+  ====================================================== */
+
+  try {
+
+    console.log(
+      "[UBnux API] API initialized.",
+      getStatus()
+    );
+
+  } catch (error) {}
 
 
 })(window, document);
