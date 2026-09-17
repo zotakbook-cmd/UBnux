@@ -1,0 +1,43 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 300 300"
+>
+
+  <rect
+    width="300"
+    height="300"
+    rx="40"
+    fill="#ccfbf1"
+  />
+
+  <circle
+    cx="150"
+    cy="125"
+    r="55"
+    fill="#0f766e"
+    opacity=".15"
+  />
+
+  <text
+    x="150"
+    y="145"
+    text-anchor="middle"
+    font-family="Arial"
+    font-size="55"
+    fill="#0f766e"
+  >
+    Z
+  </text>
+
+  <text
+    x="150"
+    y="220"
+    text-anchor="middle"
+    font-family="Arial"
+    font-size="20"
+    fill="#115e59"
+  >
+    ZilaBiz
+  </text>
+
+</svg>

@@ -1,0 +1,1425 @@
+
+<!DOCTYPE html>
+<html lang="en-IN">
+
+<head>
+
+  <!-- =====================================================
+       BASIC META
+  ====================================================== -->
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="theme-color"
+    content="#2563eb"
+  >
+
+  <meta
+    name="description"
+    content="UBnux - Discover local businesses, products and services near you."
+  >
+
+  <meta
+    name="robots"
+    content="index, follow"
+  >
+
+  <meta
+    name="format-detection"
+    content="telephone=no"
+  >
+
+  <title>UBnux - Discover Local Businesses</title>
+
+
+  <!-- =====================================================
+       PRECONNECT
+  ====================================================== -->
+
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  >
+
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  >
+
+
+  <!-- =====================================================
+       FONT
+  ====================================================== -->
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet"
+  >
+
+
+  <!-- =====================================================
+       MAIN CSS
+  ====================================================== -->
+
+  <link
+    rel="stylesheet"
+    href="assets/css/style.css"
+  >
+
+
+  <!-- =====================================================
+       INLINE CRITICAL FALLBACK
+       Prevents unstyled flash if stylesheet is delayed.
+  ====================================================== -->
+
+  <style>
+
+    [hidden] {
+      display: none !important;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    #pageLoader {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+    }
+
+    #businessModal,
+    #enquiryModal,
+    #districtModal {
+      visibility: hidden;
+      opacity: 0;
+    }
+
+    #businessModal.modal-open,
+    #enquiryModal.modal-open,
+    #districtModal.modal-open {
+      visibility: visible;
+      opacity: 1;
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+  <!-- =====================================================
+       PAGE LOADER
+  ====================================================== -->
+
+  <div
+    id="pageLoader"
+    role="status"
+    aria-live="polite"
+    aria-label="Loading UBnux"
+  >
+
+    <div
+      class="loader-spinner"
+      aria-hidden="true"
+    ></div>
+
+    <p id="loaderText">
+      Loading local businesses...
+    </p>
+
+  </div>
+
+
+  <!-- =====================================================
+       HEADER
+  ====================================================== -->
+
+  <header
+    class="site-header"
+    id="siteHeader"
+  >
+
+    <div class="container header-inner">
+
+
+      <!-- BRAND -->
+
+      <a
+        href="./"
+        class="brand"
+        aria-label="UBnux Home"
+      >
+
+        <img
+          src="assets/images/logo.png"
+          alt="UBnux"
+          class="brand-logo"
+          width="38"
+          height="38"
+          onerror="this.style.display='none'"
+        >
+
+        <span class="brand-name">
+          UBnux
+        </span>
+
+      </a>
+
+
+      <div class="header-spacer"></div>
+
+
+      <!-- DISTRICT -->
+
+      <button
+        type="button"
+        id="districtButton"
+        aria-label="Select district"
+        aria-haspopup="dialog"
+      >
+
+        <span aria-hidden="true">
+          📍
+        </span>
+
+        <span id="currentDistrict">
+          All Districts
+        </span>
+
+      </button>
+
+
+      <!-- BUSINESS LOGIN -->
+
+      <button
+        type="button"
+        id="businessLoginButton"
+      >
+        Business Login
+      </button>
+
+
+      <!-- MOBILE MENU -->
+
+      <button
+        type="button"
+        id="menuButton"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="mobileMenu"
+      >
+
+        <span aria-hidden="true">
+          ☰
+        </span>
+
+      </button>
+
+    </div>
+
+
+    <!-- MOBILE MENU -->
+
+    <div
+      id="mobileMenu"
+      class="mobile-menu"
+      hidden
+    >
+
+      <button
+        type="button"
+        id="mobileDistrictButton"
+      >
+        📍 Select District
+      </button>
+
+      <button
+        type="button"
+        id="mobileBusinessLoginButton"
+      >
+        Business Login
+      </button>
+
+    </div>
+
+  </header>
+
+
+  <!-- =====================================================
+       MAIN
+  ====================================================== -->
+
+  <main id="mainContent">
+
+
+    <!-- ===================================================
+         HERO
+    ==================================================== -->
+
+    <section
+      class="hero"
+      id="home"
+    >
+
+      <div class="container">
+
+        <div class="hero-content">
+
+          <h1 class="hero-title">
+
+            Discover
+            <span>Local Businesses</span>
+            Near You
+
+          </h1>
+
+
+          <p class="hero-description">
+
+            Find local shops, services and businesses
+            in your city or district.
+
+          </p>
+
+
+          <!-- SEARCH -->
+
+          <div
+            class="search-wrapper"
+            role="search"
+          >
+
+            <div class="search-box">
+
+              <span
+                class="search-icon"
+                aria-hidden="true"
+              >
+                🔍
+              </span>
+
+
+              <label
+                class="sr-only"
+                for="searchInput"
+              >
+                Search businesses
+              </label>
+
+
+              <input
+                type="search"
+                id="searchInput"
+                name="search"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Search businesses, services, products..."
+                aria-label="Search businesses"
+                aria-controls="businessGrid"
+              >
+
+
+              <button
+                type="button"
+                id="clearSearchButton"
+                aria-label="Clear search"
+                title="Clear search"
+              >
+                ×
+              </button>
+
+            </div>
+
+
+            <div
+              id="searchStatus"
+              role="status"
+              aria-live="polite"
+            ></div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================
+         FILTERS
+    ==================================================== -->
+
+    <section
+      class="filters-section"
+      aria-label="Business filters"
+    >
+
+      <div class="container">
+
+        <div class="filters-bar">
+
+
+          <!-- DISTRICT FILTER -->
+
+          <div class="filter-group">
+
+            <label
+              class="filter-label"
+              for="districtFilter"
+            >
+              District
+            </label>
+
+            <select
+              id="districtFilter"
+              class="filter-select"
+              aria-label="Filter by district"
+            >
+
+              <option value="ALL">
+                All Districts
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <!-- CATEGORY FILTER -->
+
+          <div class="filter-group">
+
+            <label
+              class="filter-label"
+              for="categoryFilter"
+            >
+              Category
+            </label>
+
+            <select
+              id="categoryFilter"
+              class="filter-select"
+              aria-label="Filter by category"
+            >
+
+              <option value="ALL">
+                All Categories
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <!-- SORT -->
+
+          <div class="filter-group">
+
+            <label
+              class="filter-label"
+              for="sortFilter"
+            >
+              Sort
+            </label>
+
+            <select
+              id="sortFilter"
+              class="filter-select"
+              aria-label="Sort businesses"
+            >
+
+              <option value="featured">
+                Featured
+              </option>
+
+              <option value="rating">
+                Highest Rated
+              </option>
+
+              <option value="reviews">
+                Most Reviewed
+              </option>
+
+              <option value="name-asc">
+                Name A-Z
+              </option>
+
+              <option value="name-desc">
+                Name Z-A
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <!-- RESET -->
+
+          <button
+            type="button"
+            id="resetFiltersButton"
+          >
+            Reset Filters
+          </button>
+
+        </div>
+
+
+        <!-- ACTIVE FILTERS -->
+
+        <div
+          id="activeFilters"
+          class="active-filters"
+          aria-live="polite"
+        ></div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================
+         CATEGORIES
+    ==================================================== -->
+
+    <section
+      class="categories-section"
+      id="categories"
+    >
+
+      <div class="container">
+
+
+        <div class="category-heading">
+
+          <div>
+
+            <h2>
+              Browse Categories
+            </h2>
+
+            <p class="section-subtitle">
+              Explore businesses by category
+            </p>
+
+          </div>
+
+
+          <span
+            id="categoryCount"
+            aria-live="polite"
+          >
+            0 Categories
+          </span>
+
+        </div>
+
+
+        <div
+          id="categoriesGrid"
+          aria-live="polite"
+          aria-label="Business categories"
+        ></div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================
+         BUSINESSES
+    ==================================================== -->
+
+    <section
+      class="businesses-section"
+      id="businesses"
+    >
+
+      <div class="container">
+
+
+        <div class="business-section-header">
+
+          <div>
+
+            <h2>
+              Local Businesses
+            </h2>
+
+            <p
+              class="section-subtitle"
+              id="businessSectionSubtitle"
+            >
+              Businesses available near you
+            </p>
+
+          </div>
+
+
+          <span
+            id="businessCount"
+            aria-live="polite"
+          >
+            0 Businesses
+          </span>
+
+        </div>
+
+
+        <!-- BUSINESS GRID -->
+
+        <div
+          id="businessGrid"
+          aria-live="polite"
+          aria-busy="false"
+        ></div>
+
+
+        <!-- EMPTY STATE -->
+
+        <div
+          id="emptyState"
+          hidden
+          role="status"
+          aria-live="polite"
+        >
+
+          <div
+            class="empty-state-icon"
+            aria-hidden="true"
+          >
+            🔍
+          </div>
+
+          <h3>
+            No businesses found
+          </h3>
+
+          <p>
+            Try changing your search or filters.
+          </p>
+
+        </div>
+
+
+        <!-- LOAD MORE -->
+
+        <div
+          id="loadMoreContainer"
+          hidden
+        >
+
+          <button
+            type="button"
+            id="loadMoreButton"
+          >
+            Load More
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================
+         ADD BUSINESS CTA
+    ==================================================== -->
+
+    <section class="container">
+
+      <button
+        type="button"
+        id="addBusinessButton"
+        aria-label="Add your business to UBnux"
+      >
+
+        <span>
+
+          <strong>
+            Add Your Business
+          </strong>
+
+          <span>
+            List your business and reach local customers.
+          </span>
+
+        </span>
+
+      </button>
+
+    </section>
+
+
+  </main>
+
+
+  <!-- =====================================================
+       BUSINESS DETAILS MODAL
+  ====================================================== -->
+
+  <div
+    id="businessModal"
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="businessModalTitle"
+    aria-hidden="true"
+    hidden
+  >
+
+    <div
+      class="modal-dialog"
+      role="document"
+    >
+
+      <button
+        type="button"
+        id="closeBusinessModal"
+        class="modal-close"
+        aria-label="Close business details"
+        title="Close"
+      >
+        ×
+      </button>
+
+
+      <div
+        id="businessModalContent"
+      ></div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       ENQUIRY MODAL
+  ====================================================== -->
+
+  <div
+    id="enquiryModal"
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="enquiryModalTitle"
+    aria-hidden="true"
+    hidden
+  >
+
+    <div
+      class="modal-dialog"
+      role="document"
+    >
+
+      <button
+        type="button"
+        id="closeEnquiryModal"
+        class="modal-close"
+        aria-label="Close enquiry form"
+        title="Close"
+      >
+        ×
+      </button>
+
+
+      <div class="enquiry-modal-content">
+
+
+        <h2
+          id="enquiryModalTitle"
+          class="enquiry-modal-title"
+        >
+          Send Enquiry
+        </h2>
+
+
+        <p id="enquiryBusinessName">
+          Business
+        </p>
+
+
+        <form
+          id="enquiryForm"
+          novalidate
+        >
+
+          <!-- BUSINESS ID -->
+
+          <input
+            type="hidden"
+            id="enquiryBusinessId"
+            name="businessId"
+          >
+
+
+          <!-- NAME -->
+
+          <div class="enquiry-form-group">
+
+            <label
+              for="enquiryName"
+            >
+              Your Name
+            </label>
+
+            <input
+              type="text"
+              id="enquiryName"
+              name="name"
+              autocomplete="name"
+              maxlength="100"
+              required
+              placeholder="Enter your name"
+            >
+
+          </div>
+
+
+          <!-- MOBILE -->
+
+          <div class="enquiry-form-group">
+
+            <label
+              for="enquiryMobile"
+            >
+              Mobile Number
+            </label>
+
+            <input
+              type="tel"
+              id="enquiryMobile"
+              name="mobile"
+              autocomplete="tel"
+              inputmode="tel"
+              maxlength="15"
+              required
+              placeholder="Enter mobile number"
+            >
+
+          </div>
+
+
+          <!-- MESSAGE -->
+
+          <div class="enquiry-form-group">
+
+            <label
+              for="enquiryMessageInput"
+            >
+              Your Enquiry
+            </label>
+
+            <textarea
+              id="enquiryMessageInput"
+              name="message"
+              maxlength="2000"
+              required
+              placeholder="What would you like to know?"
+            ></textarea>
+
+          </div>
+
+
+          <!-- STATUS -->
+
+          <div
+            id="enquiryMessage"
+            role="status"
+            aria-live="polite"
+            hidden
+          ></div>
+
+
+          <!-- SUBMIT -->
+
+          <div class="enquiry-submit-row">
+
+            <button
+              type="submit"
+              id="submitEnquiryButton"
+            >
+              Send Enquiry
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       DISTRICT MODAL
+  ====================================================== -->
+
+  <div
+    id="districtModal"
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="districtModalTitle"
+    aria-hidden="true"
+    hidden
+  >
+
+    <div
+      class="modal-dialog"
+      role="document"
+    >
+
+      <button
+        type="button"
+        id="closeDistrictModal"
+        class="modal-close"
+        aria-label="Close district selection"
+        title="Close"
+      >
+        ×
+      </button>
+
+
+      <h2
+        id="districtModalTitle"
+      >
+        Select Your District
+      </h2>
+
+
+      <p>
+        Choose your district to discover nearby businesses.
+      </p>
+
+
+      <!-- DISTRICT -->
+
+      <label
+        class="filter-label"
+        for="districtModalSelect"
+      >
+        District
+      </label>
+
+
+      <select
+        id="districtModalSelect"
+        aria-label="Select district"
+      >
+
+        <option value="ALL">
+          All Districts
+        </option>
+
+      </select>
+
+
+      <!-- LOCATION MESSAGE -->
+
+      <div
+        id="locationMessage"
+        role="status"
+        aria-live="polite"
+      ></div>
+
+
+      <!-- ACTIONS -->
+
+      <div class="district-modal-actions">
+
+        <button
+          type="button"
+          id="detectLocationButton"
+        >
+          📍 Detect My Location
+        </button>
+
+
+        <button
+          type="button"
+          id="saveDistrictButton"
+        >
+          Save District
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       TOAST
+  ====================================================== -->
+
+  <div
+    id="toast"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+    aria-hidden="true"
+    hidden
+  >
+
+    <span
+      id="toastIcon"
+      aria-hidden="true"
+    >
+      ℹ
+    </span>
+
+    <span
+      id="toastMessage"
+    ></span>
+
+  </div>
+
+
+  <!-- =====================================================
+       FOOTER
+  ====================================================== -->
+
+  <footer
+    class="site-footer"
+    id="footer"
+  >
+
+    <div class="container footer-inner">
+
+
+      <div>
+
+        <div class="footer-brand">
+          UBnux
+        </div>
+
+        <div class="footer-copy">
+
+          ©
+          <span id="footerYear"></span>
+          UBnux. All rights reserved.
+
+        </div>
+
+      </div>
+
+
+      <nav
+        class="footer-links"
+        aria-label="Footer navigation"
+      >
+
+        <a href="#home">
+          Home
+        </a>
+
+        <a href="#categories">
+          Categories
+        </a>
+
+        <a href="#businesses">
+          Businesses
+        </a>
+
+      </nav>
+
+    </div>
+
+  </footer>
+
+
+  <!-- =====================================================
+       JAVASCRIPT
+       IMPORTANT:
+       Keep this order.
+  ====================================================== -->
+
+  <script src="assets/js/config.js"></script>
+
+  <script src="assets/js/state.js"></script>
+
+  <script src="assets/js/cache.js"></script>
+
+  <script src="assets/js/api.js"></script>
+
+  <script src="assets/js/filters.js"></script>
+
+  <script src="assets/js/businesses.js"></script>
+
+  <script src="assets/js/categories.js"></script>
+
+  <script src="assets/js/district.js"></script>
+
+  <script src="assets/js/modal.js"></script>
+
+  <script src="assets/js/utils.js"></script>
+
+  <script src="assets/js/location.js"></script>
+
+  <script src="assets/js/app.js"></script>
+
+
+  <!-- =====================================================
+       SMALL UI INITIALIZATION
+       Does not replace app.js logic.
+  ====================================================== -->
+
+  <script>
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      function () {
+
+        /* ===============================================
+           FOOTER YEAR
+        =============================================== */
+
+        var footerYear =
+          document.getElementById(
+            "footerYear"
+          );
+
+        if (footerYear) {
+
+          footerYear.textContent =
+            new Date().getFullYear();
+
+        }
+
+
+        /* ===============================================
+           MOBILE MENU
+        =============================================== */
+
+        var menuButton =
+          document.getElementById(
+            "menuButton"
+          );
+
+        var mobileMenu =
+          document.getElementById(
+            "mobileMenu"
+          );
+
+
+        if (
+          menuButton &&
+          mobileMenu
+        ) {
+
+          menuButton.addEventListener(
+            "click",
+            function () {
+
+              var isOpen =
+                !mobileMenu.hidden;
+
+
+              mobileMenu.hidden =
+                isOpen;
+
+
+              menuButton.setAttribute(
+                "aria-expanded",
+                String(!isOpen)
+              );
+
+            }
+          );
+
+        }
+
+
+        /* ===============================================
+           MOBILE DISTRICT BUTTON
+        =============================================== */
+
+        var mobileDistrictButton =
+          document.getElementById(
+            "mobileDistrictButton"
+          );
+
+
+        if (
+          mobileDistrictButton
+        ) {
+
+          mobileDistrictButton.addEventListener(
+            "click",
+            function () {
+
+              if (
+                window.UBnux &&
+                typeof window.UBnux.openDistrictModal ===
+                  "function"
+              ) {
+
+                window.UBnux.openDistrictModal();
+
+              } else if (
+                window.UBnux &&
+                window.UBnux.district &&
+                typeof window.UBnux.district.openModal ===
+                  "function"
+              ) {
+
+                window.UBnux.district.openModal();
+
+              }
+
+            }
+          );
+
+        }
+
+
+        /* ===============================================
+           MOBILE BUSINESS LOGIN
+        =============================================== */
+
+        var mobileBusinessLoginButton =
+          document.getElementById(
+            "mobileBusinessLoginButton"
+          );
+
+
+        var businessLoginButton =
+          document.getElementById(
+            "businessLoginButton"
+          );
+
+
+        if (
+          mobileBusinessLoginButton &&
+          businessLoginButton
+        ) {
+
+          mobileBusinessLoginButton.addEventListener(
+            "click",
+            function () {
+
+              businessLoginButton.click();
+
+            }
+          );
+
+        }
+
+
+        /* ===============================================
+           DISTRICT HEADER BUTTON
+        =============================================== */
+
+        var districtButton =
+          document.getElementById(
+            "districtButton"
+          );
+
+
+        if (
+          districtButton
+        ) {
+
+          districtButton.addEventListener(
+            "click",
+            function () {
+
+              if (
+                window.UBnux &&
+                typeof window.UBnux.openDistrictModal ===
+                  "function"
+              ) {
+
+                window.UBnux.openDistrictModal();
+
+              } else if (
+                window.UBnux &&
+                window.UBnux.district &&
+                typeof window.UBnux.district.openModal ===
+                  "function"
+              ) {
+
+                window.UBnux.district.openModal();
+
+              }
+
+            }
+          );
+
+        }
+
+
+        /* ===============================================
+           ADD BUSINESS
+        =============================================== */
+
+        var addBusinessButton =
+          document.getElementById(
+            "addBusinessButton"
+          );
+
+
+        if (
+          addBusinessButton
+        ) {
+
+          addBusinessButton.addEventListener(
+            "click",
+            function () {
+
+              /*
+               * Business registration/login page
+               * can be connected later.
+               */
+
+              if (
+                window.UBnux &&
+                typeof window.UBnux.showToast ===
+                  "function"
+              ) {
+
+                window.UBnux.showToast(
+                  "Business registration will be available soon.",
+                  "info"
+                );
+
+              }
+
+            }
+          );
+
+        }
+
+
+        /* ===============================================
+           BUSINESS LOGIN
+        =============================================== */
+
+        if (
+          businessLoginButton
+        ) {
+
+          businessLoginButton.addEventListener(
+            "click",
+            function () {
+
+              /*
+               * Keep navigation configurable.
+               * If a login page exists later,
+               * replace this destination.
+               */
+
+              var loginUrl =
+                "business-login.html";
+
+              window.location.href =
+                loginUrl;
+
+            }
+          );
+
+        }
+
+
+        /* ===============================================
+           CLOSE MOBILE MENU AFTER ACTION
+        =============================================== */
+
+        var mobileLinks =
+          document.querySelectorAll(
+            "#mobileMenu button"
+          );
+
+
+        Array.prototype.forEach.call(
+          mobileLinks,
+          function (button) {
+
+            button.addEventListener(
+              "click",
+              function () {
+
+                if (
+                  mobileMenu
+                ) {
+
+                  mobileMenu.hidden =
+                    true;
+
+                }
+
+
+                if (
+                  menuButton
+                ) {
+
+                  menuButton.setAttribute(
+                    "aria-expanded",
+                    "false"
+                  );
+
+                }
+
+              }
+            );
+
+          }
+        );
+
+
+        /* ===============================================
+           IMAGE LOADING STATE
+        =============================================== */
+
+        document.addEventListener(
+          "load",
+          function (event) {
+
+            var target =
+              event.target;
+
+
+            if (
+              target &&
+              target.tagName ===
+                "IMG"
+            ) {
+
+              target.dataset.loaded =
+                "true";
+
+              target.dataset.loading =
+                "false";
+
+            }
+
+          },
+          true
+        );
+
+      }
+    );
+
+  </script>
+
+
+</body>
+
+</html>
