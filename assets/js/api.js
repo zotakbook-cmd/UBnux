@@ -1,21 +1,24 @@
 /* =========================================================
-   UBnux - API Manager
+   UBnux API Client
    File: assets/js/api.js
 
+   FINAL FIXED VERSION
+
    Responsibilities:
-   - Google Apps Script API communication
-   - Stable API URL resolution
-   - Reject stale googleusercontent echo URLs
+   - Centralized Google Apps Script API client
+   - Canonical /exec endpoint only
+   - Prevent googleusercontent redirect URL persistence
+   - GET / POST requests
+   - Timeout handling
+   - Safe retry handling
+   - Request deduplication
    - Initial data loading
-   - Safe timeout handling
-   - Smart retry handling
-   - Safe JSON parsing
-   - Cache integration
-   - Enquiry submission
-   - District/location detection
-   - Duplicate request prevention
-   - Compatibility aliases
-   - Business API compatibility
+   - Cache-first compatibility
+   - Background refresh compatibility
+   - District / Category / Business APIs
+   - Business authentication APIs
+   - Enquiry APIs
+   - Legacy ZilaBiz compatibility
    ========================================================= */
 
 (function (window, document) {
@@ -23,148 +26,165 @@
   "use strict";
 
 
-  /* =======================================================
-     SHARED APPLICATION NAMESPACE
-  ====================================================== */
+  /* =========================================================
+     NAMESPACE
+     ========================================================= */
 
   window.UBnux =
-    window.ZilaBiz ||
     window.UBnux ||
     {};
 
   window.ZilaBiz =
+    window.ZilaBiz ||
     window.UBnux;
 
-  var App =
+
+  const App =
     window.UBnux;
 
 
-  /* =======================================================
-     CONFIGURATION
-  ====================================================== */
+  /* =========================================================
+     CONFIG
+     ========================================================= */
 
-  var CONFIG =
+  const CONFIG =
     window.UBNux_CONFIG ||
     window.ZILABIZ_CONFIG ||
     {};
 
 
-  /* =======================================================
+  /* =========================================================
      CONSTANTS
-  ====================================================== */
+     ========================================================= */
 
-  var DEFAULT_PAGE_SIZE =
-    Math.max(
-      1,
-      Number(
-        CONFIG.BUSINESS_PAGE_SIZE ||
-        CONFIG.businessPageSize ||
-        18
-      )
-    );
+  const DEFAULT_API_URL =
+    "https://script.google.com/macros/s/AKfycbztutJtJG12CaENibP2XpSg9Mx_N4LFQWTm1R-U9ePTjqhHlhPEjv-UzBxUGSe5yBh-/exec";
 
 
-  /*
-   * Default timeout is intentionally shorter than the old
-   * 60000 ms value.
-   *
-   * A permanent 404 should never make the application wait
-   * for one minute.
-   *
-   * It can still be overridden from config.js.
-   */
-
-  var API_TIMEOUT =
-    Math.max(
-      5000,
-      Number(
-        CONFIG.API_TIMEOUT ||
-        CONFIG.apiTimeout ||
-        15000
-      )
-    );
+  const DEFAULT_TIMEOUT =
+    15000;
 
 
-  var API_RETRIES =
-    Math.max(
-      0,
-      Number(
-        CONFIG.API_RETRIES ??
-        CONFIG.RETRIES ??
-        1
-      )
-    );
+  const DEFAULT_RETRIES =
+    0;
 
 
-  var RETRY_DELAY =
-    Math.max(
-      100,
-      Number(
-        CONFIG.RETRY_DELAY ||
-        1000
-      )
-    );
+  const DEFAULT_RETRY_DELAY =
+    800;
 
 
-  var REQUIRE_API =
-    CONFIG.REQUIRE_API !== false;
+  const CACHE_KEY =
+    "UBnux_initial_data";
 
 
-  /* =======================================================
-     REQUEST STATE
-  ====================================================== */
+  const API_URL_STORAGE_KEY =
+    "UBnux_API_URL";
 
-  var initialDataPromise =
+
+  /* =========================================================
+     INTERNAL STATE
+     ========================================================= */
+
+  let initialDataPromise =
     null;
 
 
-  var districtsPromise =
+  let districtsPromise =
     null;
 
 
-  var categoriesPromise =
+  let categoriesPromise =
     null;
 
 
-  var businessPromises =
-    {};
-
-
-  var lastInitialData =
+  let businessesPromise =
     null;
 
 
-  var lastDistricts =
-    null;
-
-
-  var lastCategories =
-    null;
-
-
-  /* =======================================================
-     API URL STATE
-  ====================================================== */
-
-  var API_URL =
+  let apiUrl =
     "";
 
 
-  var API_URL_SOURCE =
-    "";
+  /* =========================================================
+     URL VALIDATION
+     ========================================================= */
 
-
-  /* =======================================================
-     SAFE STRING
-  ====================================================== */
-
-  function getSafeString(
-    value
-  ) {
+  function isValidApiUrl(url) {
 
     if (
-      value === null ||
-      value === undefined
+      typeof url !== "string"
+    ) {
+
+      return false;
+
+    }
+
+
+    url =
+      url.trim();
+
+
+    if (
+      !url
+    ) {
+
+      return false;
+
+    }
+
+
+    /*
+      Never allow Google's redirected
+      googleusercontent URL to become
+      the permanent API endpoint.
+    */
+
+    if (
+      url.includes(
+        "script.googleusercontent.com"
+      )
+    ) {
+
+      return false;
+
+    }
+
+
+    if (
+      !url.includes(
+        "script.google.com/macros/s/"
+      )
+    ) {
+
+      return false;
+
+    }
+
+
+    if (
+      !url.endsWith(
+        "/exec"
+      )
+    ) {
+
+      return false;
+
+    }
+
+
+    return true;
+
+  }
+
+
+  /* =========================================================
+     NORMALIZE API URL
+     ========================================================= */
+
+  function normalizeApiUrl(url) {
+
+    if (
+      typeof url !== "string"
     ) {
 
       return "";
@@ -172,154 +192,13 @@
     }
 
 
-    return String(
-      value
-    ).trim();
-
-  }
-
-
-  /* =======================================================
-     SLEEP
-  ====================================================== */
-
-  function sleep(
-    milliseconds
-  ) {
-
-    return new Promise(
-      function (resolve) {
-
-        setTimeout(
-          resolve,
-          milliseconds
-        );
-
-      }
-    );
-
-  }
-
-
-  /* =======================================================
-     ERROR MESSAGE
-  ====================================================== */
-
-  function getErrorMessage(
-    error
-  ) {
-
-    if (!error) {
-
-      return (
-        "Unknown API error."
-      );
-
-    }
+    url =
+      url.trim();
 
 
     if (
-      typeof error ===
-      "string"
+      !url
     ) {
-
-      return error;
-
-    }
-
-
-    if (
-      error.isTimeout ||
-      error.name ===
-      "AbortError"
-    ) {
-
-      return (
-        "UBnux API request timed out. " +
-        "Please try again."
-      );
-
-    }
-
-
-    if (
-      error.status
-    ) {
-
-      return (
-        "API request failed (" +
-        error.status +
-        "). " +
-        (
-          error.message ||
-          "Please try again."
-        )
-      );
-
-    }
-
-
-    if (
-      error.message
-    ) {
-
-      return String(
-        error.message
-      );
-
-    }
-
-
-    return (
-      "Unable to communicate " +
-      "with the UBnux server."
-    );
-
-  }
-
-
-  /* =======================================================
-     CREATE TIMEOUT ERROR
-  ====================================================== */
-
-  function createTimeoutError() {
-
-    var error =
-      new Error(
-        "UBnux API request timed out after " +
-        API_TIMEOUT +
-        " ms."
-      );
-
-
-    error.name =
-      "UBnuxTimeoutError";
-
-
-    error.isTimeout =
-      true;
-
-
-    return error;
-
-  }
-
-
-  /* =======================================================
-     URL HELPERS
-  ====================================================== */
-
-  function normalizeURL(
-    value
-  ) {
-
-    value =
-      getSafeString(
-        value
-      );
-
-
-    if (!value) {
 
       return "";
 
@@ -327,428 +206,117 @@
 
 
     /*
-     * Remove accidental surrounding quotes.
-     */
+      Remove accidental query string.
+      The client adds ?action=...
+      itself.
+    */
+
+    const questionIndex =
+      url.indexOf("?");
+
 
     if (
-      (
-        value.startsWith("\"") &&
-        value.endsWith("\"")
-      ) ||
-      (
-        value.startsWith("'") &&
-        value.endsWith("'")
-      )
+      questionIndex !== -1
     ) {
 
-      value =
-        value.slice(
-          1,
-          -1
-        ).trim();
+      url =
+        url.substring(
+          0,
+          questionIndex
+        );
 
     }
 
 
-    return value;
+    /*
+      Remove trailing slash.
+    */
+
+    url =
+      url.replace(
+        /\/+$/,
+        ""
+      );
+
+
+    return url;
 
   }
 
 
-  /* =======================================================
-     DETECT STALE GOOGLE USERCONTENT URL
-  ====================================================== */
+  /* =========================================================
+     RESOLVE API URL
+     ========================================================= */
 
-  function isStaleGoogleUserContentURL(
-    value
-  ) {
+  function resolveApiUrl() {
 
-    value =
-      normalizeURL(
-        value
-      );
+    /*
+      1. Config has highest priority.
+    */
+
+    const configCandidates = [
+
+      CONFIG.API_URL,
+
+      CONFIG.apiUrl,
+
+      CONFIG.API_ENDPOINT,
+
+      CONFIG.apiEndpoint
+
+    ];
 
 
-    if (!value) {
+    for (
+      let i = 0;
+      i < configCandidates.length;
+      i++
+    ) {
 
-      return false;
-
-    }
-
-
-    try {
-
-      var url =
-        new URL(
-          value
+      const candidate =
+        normalizeApiUrl(
+          configCandidates[i]
         );
 
-
-      var hostname =
-        String(
-          url.hostname
-        ).toLowerCase();
-
-
-      var pathname =
-        String(
-          url.pathname
-        ).toLowerCase();
-
-
-      /*
-       * Google Apps Script frequently redirects a stable
-       * /exec URL to a temporary googleusercontent endpoint.
-       *
-       * That redirected URL should NOT be stored as the
-       * permanent API URL.
-       */
 
       if (
-        hostname ===
-          "script.googleusercontent.com" &&
-        pathname.indexOf(
-          "/macros/echo"
-        ) === 0
+        isValidApiUrl(candidate)
       ) {
 
-        return true;
+        return candidate;
 
       }
-
-    } catch (error) {
-
-      return false;
-
-    }
-
-
-    return false;
-
-  }
-
-
-  /* =======================================================
-     VALID API URL
-  ====================================================== */
-
-  function isValidAPIURL(
-    value
-  ) {
-
-    value =
-      normalizeURL(
-        value ||
-        API_URL
-      );
-
-
-    if (!value) {
-
-      return false;
 
     }
 
 
     /*
-     * Never accept the temporary echo endpoint as the
-     * permanent UBnux API URL.
-     */
+      2. Meta tag.
+    */
 
-    if (
-      isStaleGoogleUserContentURL(
-        value
-      )
-    ) {
-
-      return false;
-
-    }
-
-
-    try {
-
-      var url =
-        new URL(
-          value
-        );
-
-
-      return (
-        (
-          url.protocol ===
-          "https:"
-        ) ||
-        (
-          url.protocol ===
-          "http:"
-        )
-      );
-
-    } catch (error) {
-
-      return false;
-
-    }
-
-  }
-
-
-  /* =======================================================
-     READ META API URL
-  ====================================================== */
-
-  function getMetaAPIURL() {
-
-    var meta =
+    const meta =
       document.querySelector(
         'meta[name="ubnux-api-url"]'
       );
 
 
-    if (!meta) {
-
-      meta =
-        document.querySelector(
-          'meta[name="zilabiz-api-url"]'
-        );
-
-    }
-
-
-    if (!meta) {
-
-      meta =
-        document.querySelector(
-          'meta[name="api-url"]'
-        );
-
-    }
-
-
-    if (!meta) {
-
-      return "";
-
-    }
-
-
-    return normalizeURL(
-      meta.getAttribute(
-        "content"
-      )
-    );
-
-  }
-
-
-  /* =======================================================
-     READ LOCAL STORAGE API URL
-  ====================================================== */
-
-  function getStoredAPIURL() {
-
-    var keys = [
-
-      "UBnux_API_URL",
-      "UBNUX_API_URL",
-      "ZilaBiz_API_URL",
-      "ZILABIZ_API_URL",
-      "apiUrl",
-      "API_URL"
-
-    ];
-
-
-    for (
-      var i = 0;
-      i < keys.length;
-      i++
+    if (
+      meta
     ) {
 
-      try {
-
-        var value =
-          localStorage.getItem(
-            keys[i]
-          );
-
-
-        if (
-          isValidAPIURL(
-            value
+      const candidate =
+        normalizeApiUrl(
+          meta.getAttribute(
+            "content"
           )
-        ) {
-
-          return normalizeURL(
-            value
-          );
-
-        }
-
-      } catch (error) {}
-
-    }
-
-
-    return "";
-
-  }
-
-
-  /* =======================================================
-     GET CONFIG API CANDIDATES
-  ====================================================== */
-
-  function getConfigAPICandidates() {
-
-    return [
-
-      {
-        value:
-          CONFIG.API_URL,
-
-        source:
-          "CONFIG.API_URL"
-
-      },
-
-      {
-        value:
-          CONFIG.apiUrl,
-
-        source:
-          "CONFIG.apiUrl"
-
-      },
-
-      {
-        value:
-          CONFIG.API_BASE_URL,
-
-        source:
-          "CONFIG.API_BASE_URL"
-
-      },
-
-      {
-        value:
-          CONFIG.apiBaseUrl,
-
-        source:
-          "CONFIG.apiBaseUrl"
-
-      },
-
-      {
-        value:
-          CONFIG.GAS_API_URL,
-
-        source:
-          "CONFIG.GAS_API_URL"
-
-      },
-
-      {
-        value:
-          CONFIG.gasApiUrl,
-
-        source:
-          "CONFIG.gasApiUrl"
-
-      },
-
-      {
-        value:
-          CONFIG.WEB_APP_URL,
-
-        source:
-          "CONFIG.WEB_APP_URL"
-
-      },
-
-      {
-        value:
-          CONFIG.webAppUrl,
-
-        source:
-          "CONFIG.webAppUrl"
-
-      },
-
-      {
-        value:
-          CONFIG.SCRIPT_URL,
-
-        source:
-          "CONFIG.SCRIPT_URL"
-
-      },
-
-      {
-        value:
-          CONFIG.scriptUrl,
-
-        source:
-          "CONFIG.scriptUrl"
-
-      }
-
-    ];
-
-  }
-
-
-  /* =======================================================
-     RESOLVE API URL
-  ====================================================== */
-
-  function resolveAPIURL() {
-
-    var candidates =
-      getConfigAPICandidates();
-
-
-    /*
-     * IMPORTANT:
-     *
-     * First pass searches only for stable URLs.
-     *
-     * This means if API_URL contains an old
-     * googleusercontent echo URL but another config
-     * property contains the actual /exec URL, the stable
-     * URL wins.
-     */
-
-    for (
-      var i = 0;
-      i < candidates.length;
-      i++
-    ) {
-
-      var candidate =
-        candidates[i];
-
-
-      var value =
-        normalizeURL(
-          candidate.value
         );
 
 
       if (
-        isValidAPIURL(
-          value
-        )
+        isValidApiUrl(candidate)
       ) {
 
-        API_URL =
-          value;
-
-        API_URL_SOURCE =
-          candidate.source;
-
-        return API_URL;
+        return candidate;
 
       }
 
@@ -756,256 +324,276 @@
 
 
     /*
-     * Meta tag fallback.
-     */
+      3. Previously saved URL.
 
-    var metaURL =
-      getMetaAPIURL();
+      IMPORTANT:
+      googleusercontent URLs are rejected.
+    */
 
+    try {
 
-    if (
-      isValidAPIURL(
-        metaURL
-      )
-    ) {
-
-      API_URL =
-        metaURL;
-
-      API_URL_SOURCE =
-        "meta";
-
-      return API_URL;
-
-    }
-
-
-    /*
-     * localStorage fallback.
-     *
-     * Only stable URLs are accepted.
-     */
-
-    var storedURL =
-      getStoredAPIURL();
-
-
-    if (
-      isValidAPIURL(
-        storedURL
-      )
-    ) {
-
-      API_URL =
-        storedURL;
-
-      API_URL_SOURCE =
-        "localStorage";
-
-      return API_URL;
-
-    }
-
-
-    /*
-     * Nothing valid found.
-     */
-
-    API_URL =
-      "";
-
-
-    API_URL_SOURCE =
-      "";
-
-
-    return "";
-
-  }
-
-
-  /*
-   * Resolve immediately during script initialization.
-   */
-
-  resolveAPIURL();
-
-
-  /* =======================================================
-     CLEAR STALE API URLS
-  ====================================================== */
-
-  function clearStaleStoredAPIURLs() {
-
-    var keys = [
-
-      "UBnux_API_URL",
-      "UBNUX_API_URL",
-      "ZilaBiz_API_URL",
-      "ZILABIZ_API_URL",
-      "apiUrl",
-      "API_URL"
-
-    ];
-
-
-    for (
-      var i = 0;
-      i < keys.length;
-      i++
-    ) {
-
-      try {
-
-        var value =
+      const saved =
+        normalizeApiUrl(
           localStorage.getItem(
-            keys[i]
-          );
-
-
-        if (
-          isStaleGoogleUserContentURL(
-            value
+            API_URL_STORAGE_KEY
           )
-        ) {
-
-          localStorage.removeItem(
-            keys[i]
-          );
-
-        }
-
-      } catch (error) {}
-
-    }
-
-  }
-
-
-  clearStaleStoredAPIURLs();
-
-
-  /*
-   * Resolve one more time after stale localStorage values
-   * have been removed.
-   */
-
-  resolveAPIURL();
-
-
-  /* =======================================================
-     SET API URL
-  ====================================================== */
-
-  function setAPIURL(
-    value,
-    save
-  ) {
-
-    value =
-      normalizeURL(
-        value
-      );
-
-
-    if (
-      !isValidAPIURL(
-        value
-      )
-    ) {
-
-      throw new Error(
-        "Invalid UBnux API URL. " +
-        "Use the stable Google Apps Script /exec URL."
-      );
-
-    }
-
-
-    API_URL =
-      value;
-
-
-    API_URL_SOURCE =
-      "runtime";
-
-
-    if (
-      save !== false
-    ) {
-
-      try {
-
-        localStorage.setItem(
-          "UBnux_API_URL",
-          API_URL
         );
 
-      } catch (error) {}
+
+      if (
+        isValidApiUrl(saved)
+      ) {
+
+        return saved;
+
+      }
+
+    } catch (
+      error
+    ) {
+
+      /*
+        Ignore localStorage errors.
+      */
 
     }
 
 
-    return API_URL;
+    /*
+      4. Final canonical endpoint.
+    */
+
+    return DEFAULT_API_URL;
 
   }
 
 
-  /* =======================================================
-     BUILD URL
-  ====================================================== */
+  /* =========================================================
+     SET API URL
+     ========================================================= */
 
-  function buildURL(
+  function setApiUrl(url) {
+
+    const normalized =
+      normalizeApiUrl(
+        url
+      );
+
+
+    if (
+      !isValidApiUrl(
+        normalized
+      )
+    ) {
+
+      console.warn(
+        "[UBnux API] Invalid API URL ignored:",
+        url
+      );
+
+      return false;
+
+    }
+
+
+    apiUrl =
+      normalized;
+
+
+    try {
+
+      localStorage.setItem(
+        API_URL_STORAGE_KEY,
+        normalized
+      );
+
+    } catch (
+      error
+    ) {
+
+      /*
+        Ignore storage failure.
+      */
+
+    }
+
+
+    return true;
+
+  }
+
+
+  /* =========================================================
+     INITIALIZE API URL
+     ========================================================= */
+
+  apiUrl =
+    resolveApiUrl();
+
+
+  /*
+    Always prefer config/canonical URL
+    over a previously stored redirect URL.
+  */
+
+  if (
+    isValidApiUrl(
+      apiUrl
+    )
+  ) {
+
+    try {
+
+      localStorage.setItem(
+        API_URL_STORAGE_KEY,
+        apiUrl
+      );
+
+    } catch (
+      error
+    ) {
+
+      /*
+        Ignore.
+      */
+
+    }
+
+  }
+
+
+  /* =========================================================
+     GET API URL
+     ========================================================= */
+
+  function getApiUrl() {
+
+    return apiUrl;
+
+  }
+
+
+  /* =========================================================
+     REQUEST CONFIG
+     ========================================================= */
+
+  function getTimeout() {
+
+    const value =
+      Number(
+        CONFIG.API_TIMEOUT
+      );
+
+
+    if (
+      Number.isFinite(value) &&
+      value >= 3000
+    ) {
+
+      return value;
+
+    }
+
+
+    return DEFAULT_TIMEOUT;
+
+  }
+
+
+  function getRetries() {
+
+    const value =
+      Number(
+        CONFIG.API_RETRIES ??
+        CONFIG.API_RETRY_COUNT
+      );
+
+
+    if (
+      Number.isFinite(value) &&
+      value >= 0
+    ) {
+
+      return Math.min(
+        value,
+        2
+      );
+
+    }
+
+
+    return DEFAULT_RETRIES;
+
+  }
+
+
+  function getRetryDelay() {
+
+    const value =
+      Number(
+        CONFIG.RETRY_DELAY ??
+        CONFIG.API_RETRY_DELAY
+      );
+
+
+    if (
+      Number.isFinite(value) &&
+      value >= 0
+    ) {
+
+      return value;
+
+    }
+
+
+    return DEFAULT_RETRY_DELAY;
+
+  }
+
+
+  /* =========================================================
+     BUILD URL
+     ========================================================= */
+
+  function buildUrl(
     action,
     params
   ) {
 
-    /*
-     * Try resolving again in case config was initialized
-     * after this file was loaded.
-     */
-
-    if (
-      !isValidAPIURL()
-    ) {
-
-      resolveAPIURL();
-
-    }
+    const base =
+      normalizeApiUrl(
+        apiUrl
+      );
 
 
     if (
-      !isValidAPIURL()
+      !isValidApiUrl(
+        base
+      )
     ) {
 
       throw new Error(
-        "UBnux API URL is not configured. " +
-        "Please configure the stable Apps Script /exec URL."
+        "Invalid UBnux API URL."
       );
 
     }
 
 
-    var url =
+    const url =
       new URL(
-        API_URL
+        base
       );
 
 
-    if (action) {
-
-      url.searchParams.set(
-        "action",
-        action
-      );
-
-    }
+    url.searchParams.set(
+      "action",
+      action
+    );
 
 
     if (
       params &&
-      typeof params ===
-      "object"
+      typeof params === "object"
     ) {
 
       Object.keys(
@@ -1013,7 +601,7 @@
       ).forEach(
         function (key) {
 
-          var value =
+          const value =
             params[key];
 
 
@@ -1027,23 +615,44 @@
           }
 
 
+          /*
+            Arrays are converted to JSON.
+          */
+
           if (
-            typeof value ===
-            "object"
+            Array.isArray(
+              value
+            )
           ) {
 
-            try {
+            url.searchParams.set(
+              key,
+              JSON.stringify(
+                value
+              )
+            );
 
-              value =
-                JSON.stringify(
-                  value
-                );
+            return;
 
-            } catch (error) {
+          }
 
-              return;
 
-            }
+          /*
+            Objects are converted to JSON.
+          */
+
+          if (
+            typeof value === "object"
+          ) {
+
+            url.searchParams.set(
+              key,
+              JSON.stringify(
+                value
+              )
+            );
+
+            return;
 
           }
 
@@ -1066,87 +675,265 @@
   }
 
 
-  /* =======================================================
-     FETCH WITH TIMEOUT
-  ====================================================== */
+  /* =========================================================
+     ABORT / TIMEOUT
+     ========================================================= */
+
+  function createTimeoutController(
+    timeout
+  ) {
+
+    const controller =
+      new AbortController();
+
+
+    const timer =
+      setTimeout(
+        function () {
+
+          controller.abort();
+
+        },
+        timeout
+      );
+
+
+    return {
+
+      controller,
+
+      clear:
+        function () {
+
+          clearTimeout(
+            timer
+          );
+
+        }
+
+    };
+
+  }
+
+
+  /* =========================================================
+     RESPONSE PARSER
+     ========================================================= */
+
+  async function parseResponse(
+    response
+  ) {
+
+    const text =
+      await response.text();
+
+
+    if (
+      !text
+    ) {
+
+      throw new Error(
+        "Empty response received from UBnux API."
+      );
+
+    }
+
+
+    let data;
+
+
+    try {
+
+      data =
+        JSON.parse(
+          text
+        );
+
+    } catch (
+      firstError
+    ) {
+
+      /*
+        Some Apps Script responses can
+        occasionally contain wrapper text.
+
+        Try to locate the first JSON object.
+      */
+
+      const start =
+        text.indexOf("{");
+
+
+      const end =
+        text.lastIndexOf("}");
+
+
+      if (
+        start !== -1 &&
+        end !== -1 &&
+        end > start
+      ) {
+
+        try {
+
+          data =
+            JSON.parse(
+              text.substring(
+                start,
+                end + 1
+              )
+            );
+
+        } catch (
+          secondError
+        ) {
+
+          throw new Error(
+            "Invalid JSON response from UBnux API."
+          );
+
+        }
+
+      } else {
+
+        throw new Error(
+          "Invalid response from UBnux API."
+        );
+
+      }
+
+    }
+
+
+    if (
+      !data ||
+      typeof data !== "object"
+    ) {
+
+      throw new Error(
+        "Invalid API response format."
+      );
+
+    }
+
+
+    return data;
+
+  }
+
+
+  /* =========================================================
+     SINGLE FETCH
+     ========================================================= */
 
   async function fetchWithTimeout(
     url,
     options
   ) {
 
-    options =
-      options ||
-      {};
+    const timeout =
+      getTimeout();
 
 
-    var controller =
-      typeof AbortController !==
-      "undefined"
-
-        ? new AbortController()
-
-        : null;
-
-
-    var timeoutId =
-      null;
-
-
-    var timedOut =
-      false;
-
-
-    if (controller) {
-
-      options.signal =
-        controller.signal;
-
-
-      timeoutId =
-        setTimeout(
-          function () {
-
-            timedOut =
-              true;
-
-
-            try {
-
-              controller.abort();
-
-            } catch (error) {}
-
-          },
-          API_TIMEOUT
-        );
-
-    }
+    const timeoutController =
+      createTimeoutController(
+        timeout
+      );
 
 
     try {
 
-      var response =
-        await fetch(
-          url,
-          options
+      const fetchOptions =
+        Object.assign(
+          {},
+          options || {},
+          {
+            signal:
+              timeoutController.controller.signal
+          }
         );
 
 
-      return response;
+      console.log(
+        "[UBnux API] REQUEST:",
+        url
+      );
 
-    } catch (error) {
+
+      const response =
+        await fetch(
+          url,
+          fetchOptions
+        );
+
 
       if (
-        timedOut ||
-        (
-          error &&
-          error.name ===
-          "AbortError"
-        )
+        !response.ok
       ) {
 
-        throw createTimeoutError();
+        const status =
+          response.status;
+
+
+        const statusText =
+          response.statusText ||
+          "";
+
+
+        const error =
+          new Error(
+            "UBnux API HTTP " +
+            status +
+            (
+              statusText
+                ? " " + statusText
+                : ""
+            )
+          );
+
+
+        error.status =
+          status;
+
+
+        /*
+          IMPORTANT:
+          404/400/401/etc. should NOT
+          be blindly retried.
+        */
+
+        throw error;
+
+      }
+
+
+      return await parseResponse(
+        response
+      );
+
+    } catch (
+      error
+    ) {
+
+      if (
+        error &&
+        error.name ===
+        "AbortError"
+      ) {
+
+        const timeoutError =
+          new Error(
+            "UBnux API request timed out after " +
+            timeout +
+            " ms."
+          );
+
+
+        timeoutError.code =
+          "TIMEOUT";
+
+
+        throw timeoutError;
 
       }
 
@@ -1155,277 +942,23 @@
 
     } finally {
 
-      if (
-        timeoutId !== null
-      ) {
-
-        clearTimeout(
-          timeoutId
-        );
-
-      }
+      timeoutController.clear();
 
     }
 
   }
 
 
-  /* =======================================================
-     PARSE RESPONSE
-  ====================================================== */
-
-  async function parseResponse(
-    response
-  ) {
-
-    if (!response) {
-
-      throw new Error(
-        "Empty server response."
-      );
-
-    }
-
-
-    var text =
-      "";
-
-
-    try {
-
-      text =
-        await response.text();
-
-    } catch (error) {
-
-      throw new Error(
-        "Unable to read server response."
-      );
-
-    }
-
-
-    /*
-     * Empty successful response.
-     */
-
-    if (!text) {
-
-      if (
-        response.ok
-      ) {
-
-        return {};
-
-      }
-
-
-      var emptyError =
-        new Error(
-          "Server returned an empty response."
-        );
-
-
-      emptyError.status =
-        response.status;
-
-
-      emptyError.httpStatus =
-        response.status;
-
-
-      throw emptyError;
-
-    }
-
-
-    var parsed =
-      null;
-
-
-    /*
-     * First attempt: complete JSON.
-     */
-
-    try {
-
-      parsed =
-        JSON.parse(
-          text
-        );
-
-    } catch (error) {
-
-
-      /*
-       * Second attempt:
-       * Find JSON object inside possible wrapper text.
-       */
-
-      var firstBrace =
-        text.indexOf(
-          "{"
-        );
-
-
-      var lastBrace =
-        text.lastIndexOf(
-          "}"
-        );
-
-
-      if (
-        firstBrace >= 0 &&
-        lastBrace > firstBrace
-      ) {
-
-        var possibleJSON =
-          text.slice(
-            firstBrace,
-            lastBrace + 1
-          );
-
-
-        try {
-
-          parsed =
-            JSON.parse(
-              possibleJSON
-            );
-
-        } catch (secondError) {
-
-          parsed =
-            null;
-
-        }
-
-      }
-
-    }
-
-
-    /*
-     * Invalid JSON.
-     */
-
-    if (
-      parsed === null
-    ) {
-
-      var invalidError;
-
-
-      if (
-        !response.ok
-      ) {
-
-        invalidError =
-          new Error(
-            "Server error (" +
-            response.status +
-            "): " +
-            text.slice(
-              0,
-              300
-            )
-          );
-
-      } else {
-
-        invalidError =
-          new Error(
-            "Server returned invalid JSON."
-          );
-
-      }
-
-
-      invalidError.status =
-        response.status;
-
-
-      invalidError.httpStatus =
-        response.status;
-
-
-      throw invalidError;
-
-    }
-
-
-    /*
-     * HTTP error even when JSON is valid.
-     */
-
-    if (
-      !response.ok
-    ) {
-
-      var serverMessage =
-        parsed.message ||
-        parsed.error ||
-        (
-          "Server request failed."
-        );
-
-
-      var httpError =
-        new Error(
-          String(
-            serverMessage
-          )
-        );
-
-
-      httpError.status =
-        response.status;
-
-
-      httpError.httpStatus =
-        response.status;
-
-
-      httpError.serverResponse =
-        parsed;
-
-
-      throw httpError;
-
-    }
-
-
-    return parsed;
-
-  }
-
-
-  /* =======================================================
-     SHOULD RETRY ERROR
-  ====================================================== */
-
-  function shouldRetryError(
+  /* =========================================================
+     SHOULD RETRY
+     ========================================================= */
+
+  function shouldRetry(
     error
   ) {
 
-    if (!error) {
-
-      return true;
-
-    }
-
-
-    /*
-     * Configuration errors must never retry.
-     */
-
     if (
-      error.message &&
-      (
-        error.message.indexOf(
-          "API URL"
-        ) !== -1
-      )
+      !error
     ) {
 
       return false;
@@ -1433,41 +966,43 @@
     }
 
 
-    /*
-     * HTTP status.
-     */
+    if (
+      error.code ===
+      "TIMEOUT"
+    ) {
 
-    var status =
+      return true;
+
+    }
+
+
+    if (
+      error.name ===
+      "TypeError"
+    ) {
+
+      /*
+        Network/fetch failure.
+      */
+
+      return true;
+
+    }
+
+
+    const status =
       Number(
-        error.status ||
-        error.httpStatus ||
-        0
+        error.status
       );
 
 
     /*
-     * 4xx errors are generally permanent for the
-     * current request and should not be retried.
-     *
-     * This specifically fixes repeated 404 calls.
-     */
+      Retry only server-side errors.
+    */
 
     if (
-      status >= 400 &&
-      status < 500
-    ) {
-
-      return false;
-
-    }
-
-
-    /*
-     * Timeouts can be retried.
-     */
-
-    if (
-      error.isTimeout
+      status >= 500 &&
+      status <= 599
     ) {
 
       return true;
@@ -1475,552 +1010,486 @@
     }
 
 
-    /*
-     * Network errors can be retried.
-     */
-
-    return true;
+    return false;
 
   }
 
 
-  /* =======================================================
-     GET REQUEST
-  ====================================================== */
+  /* =========================================================
+     WAIT
+     ========================================================= */
+
+  function wait(
+    milliseconds
+  ) {
+
+    return new Promise(
+      function (resolve) {
+
+        setTimeout(
+          resolve,
+          milliseconds
+        );
+
+      }
+    );
+
+  }
+
+
+  /* =========================================================
+     REQUEST
+     ========================================================= */
 
   async function request(
     action,
     params,
-    options
+    method,
+    body
   ) {
 
-    options =
-      options ||
-      {};
-
-
-    var url =
-      buildURL(
-        action,
-        params
-      );
-
-
-    var attempts =
-      Math.max(
-        1,
-        Number(
-          options.retries ??
-          (
-            API_RETRIES +
-            1
-          )
-        )
-      );
-
-
-    var lastError =
-      null;
-
-
-    for (
-      var attempt = 0;
-      attempt < attempts;
-      attempt++
-    ) {
-
-      try {
-
-        var response =
-          await fetchWithTimeout(
-            url,
-            {
-
-              method:
-                "GET",
-
-              headers: {
-
-                "Accept":
-                  "application/json"
-
-              },
-
-              cache:
-                "no-store"
-
-            }
-          );
-
-
-        var data =
-          await parseResponse(
-            response
-          );
-
-
-        return data;
-
-      } catch (error) {
-
-        lastError =
-          error;
-
-
-        /*
-         * Do not retry permanent errors.
-         */
-
-        if (
-          !shouldRetryError(
-            error
-          )
-        ) {
-
-          break;
-
-        }
-
-
-        if (
-          attempt <
-          attempts - 1
-        ) {
-
-          await sleep(
-            RETRY_DELAY *
-            (
-              attempt +
-              1
-            )
-          );
-
-        }
-
-      }
-
-    }
-
-
-    throw (
-      lastError ||
-      new Error(
-        "API request failed."
+    if (
+      !isValidApiUrl(
+        apiUrl
       )
-    );
-
-  }
-
-
-  /* =======================================================
-     POST REQUEST
-  ====================================================== */
-
-  async function postRequest(
-    action,
-    payload,
-    options
-  ) {
-
-    options =
-      options ||
-      {};
-
-
-    if (
-      !isValidAPIURL()
     ) {
 
-      resolveAPIURL();
+      apiUrl =
+        resolveApiUrl();
 
     }
 
 
     if (
-      !isValidAPIURL()
+      !isValidApiUrl(
+        apiUrl
+      )
     ) {
 
       throw new Error(
-        "UBnux API URL is not configured."
+        "UBnux API endpoint is not configured."
       );
 
     }
 
 
-    var url =
-      buildURL(
-        action
-      );
+    const requestMethod =
+      (
+        method ||
+        "GET"
+      ).toUpperCase();
 
 
-    var attempts =
-      Math.max(
-        1,
-        Number(
-          options.retries ??
-          (
-            API_RETRIES +
-            1
-          )
-        )
-      );
+    let url;
 
 
-    var lastError =
-      null;
+    try {
 
+      url =
+        buildUrl(
+          action,
+          requestMethod === "GET"
+            ? params
+            : null
+        );
 
-    for (
-      var attempt = 0;
-      attempt < attempts;
-      attempt++
+    } catch (
+      error
     ) {
 
-      try {
-
-        var response =
-          await fetchWithTimeout(
-            url,
-            {
-
-              method:
-                "POST",
-
-              headers: {
-
-                "Content-Type":
-                  "application/json",
-
-                "Accept":
-                  "application/json"
-
-              },
-
-              body:
-                JSON.stringify(
-                  payload ||
-                  {}
-                )
-
-            }
-          );
-
-
-        var result =
-          await parseResponse(
-            response
-          );
-
-
-        return result;
-
-      } catch (error) {
-
-        lastError =
-          error;
-
-
-        if (
-          !shouldRetryError(
-            error
-          )
-        ) {
-
-          break;
-
-        }
-
-
-        if (
-          attempt <
-          attempts - 1
-        ) {
-
-          await sleep(
-            RETRY_DELAY *
-            (
-              attempt +
-              1
-            )
-          );
-
-        }
-
-      }
+      throw error;
 
     }
 
 
-    throw (
-      lastError ||
-      new Error(
-        "POST request failed."
-      )
-    );
+    const options = {
 
-  }
+      method:
+        requestMethod,
 
+      headers: {
 
-  /* =======================================================
-     NORMALIZE INITIAL DATA
-  ====================================================== */
-
-  function normalizeInitialData(
-    response
-  ) {
-
-    response =
-      response ||
-      {};
-
-
-    var source =
-      response.data &&
-      typeof response.data ===
-      "object"
-
-        ? response.data
-
-        : response;
-
-
-    var districts =
-      Array.isArray(
-        source.districts
-      )
-        ? source.districts
-        : [];
-
-
-    var categories =
-      Array.isArray(
-        source.categories
-      )
-        ? source.categories
-        : [];
-
-
-    var businesses =
-      Array.isArray(
-        source.businesses
-      )
-        ? source.businesses
-        : [];
-
-
-    var meta =
-      source.businessMeta &&
-      typeof source.businessMeta ===
-      "object"
-
-        ? source.businessMeta
-
-        : {};
-
-
-    var total =
-      Number(
-        meta.total ??
-        businesses.length
-      );
-
-
-    var offset =
-      Number(
-        meta.offset ??
-        0
-      );
-
-
-    var limit =
-      Number(
-        meta.limit ??
-        businesses.length
-      );
-
-
-    var hasMore =
-      Boolean(
-        meta.hasMore
-      );
-
-
-    return {
-
-      success:
-        response.success !==
-        false,
-
-      message:
-        getSafeString(
-          response.message
-        ),
-
-      data: {
-
-        districts:
-          districts,
-
-        categories:
-          categories,
-
-        businesses:
-          businesses,
-
-        businessMeta: {
-
-          total:
-            Number.isFinite(
-              total
-            )
-              ? total
-              : businesses.length,
-
-          offset:
-            Number.isFinite(
-              offset
-            )
-              ? offset
-              : 0,
-
-          limit:
-            Number.isFinite(
-              limit
-            )
-              ? limit
-              : businesses.length,
-
-          hasMore:
-            hasMore
-
-        }
+        "Accept":
+          "application/json"
 
       }
 
     };
 
+
+    if (
+      requestMethod !==
+      "GET"
+    ) {
+
+      options.headers[
+        "Content-Type"
+      ] =
+        "application/json";
+
+
+      if (
+        body !== undefined &&
+        body !== null
+      ) {
+
+        options.body =
+          JSON.stringify(
+            body
+          );
+
+      } else if (
+        params
+      ) {
+
+        options.body =
+          JSON.stringify(
+            params
+          );
+
+      }
+
+    }
+
+
+    const retries =
+      getRetries();
+
+
+    const retryDelay =
+      getRetryDelay();
+
+
+    let lastError =
+      null;
+
+
+    for (
+      let attempt = 0;
+      attempt <= retries;
+      attempt++
+    ) {
+
+      try {
+
+        const result =
+          await fetchWithTimeout(
+            url,
+            options
+          );
+
+
+        /*
+          Log API result in development.
+        */
+
+        if (
+          CONFIG.DEBUG === true
+        ) {
+
+          console.log(
+            "[UBnux API] RESPONSE:",
+            action,
+            result
+          );
+
+        }
+
+
+        return result;
+
+      } catch (
+        error
+      ) {
+
+        lastError =
+          error;
+
+
+        if (
+          attempt >= retries ||
+          !shouldRetry(
+            error
+          )
+        ) {
+
+          break;
+
+        }
+
+
+        await wait(
+          retryDelay *
+          (attempt + 1)
+        );
+
+      }
+
+    }
+
+
+    throw lastError ||
+      new Error(
+        "UBnux API request failed."
+      );
+
   }
 
 
-  /* =======================================================
-     SAVE INITIAL DATA TO CACHE
-  ====================================================== */
+  /* =========================================================
+     REQUEST DEDUPLICATION
+     ========================================================= */
 
-  function saveInitialDataToCache(
-    normalized
+  function dedupeRequest(
+    promiseVariableName,
+    createRequest
   ) {
+
+    /*
+      This function is not used directly
+      with dynamic variable references.
+      It exists for documentation/compatibility.
+    */
+
+    return createRequest();
+
+  }
+
+
+  /* =========================================================
+     INITIAL DATA CACHE
+     ========================================================= */
+
+  function readInitialDataCache() {
 
     try {
 
-      if (
-        App.cache &&
-        typeof App.cache
-          .setInitialDataCache ===
-        "function"
-      ) {
-
-        App.cache.setInitialDataCache(
-          normalized
+      const raw =
+        localStorage.getItem(
+          CACHE_KEY
         );
 
-        return;
+
+      if (
+        !raw
+      ) {
+
+        return null;
 
       }
 
 
+      const parsed =
+        JSON.parse(
+          raw
+        );
+
+
       if (
-        typeof App.setInitialDataCache ===
-        "function"
+        !parsed ||
+        typeof parsed !== "object"
       ) {
 
-        App.setInitialDataCache(
-          normalized
-        );
+        return null;
 
       }
 
-    } catch (cacheError) {
 
-      /*
-       * Cache failure must never break
-       * a successful API request.
-       */
+      return parsed;
+
+    } catch (
+      error
+    ) {
+
+      return null;
 
     }
 
   }
 
 
-  /* =======================================================
-     GET INITIAL DATA FROM API
-  ====================================================== */
-
-  async function fetchInitialData(
-    options
+  function writeInitialDataCache(
+    data
   ) {
 
-    options =
-      options ||
-      {};
+    try {
 
-
-    var response =
-      await request(
-        "getinitialdata",
-        {
-
-          offset:
-            options.offset ??
-            0,
-
-          limit:
-            options.limit ??
-            DEFAULT_PAGE_SIZE
-
-        },
-        options
+      localStorage.setItem(
+        CACHE_KEY,
+        JSON.stringify(
+          data
+        )
       );
 
+    } catch (
+      error
+    ) {
 
-    var normalized =
-      normalizeInitialData(
-        response
+      console.warn(
+        "[UBnux API] Unable to save initial data cache:",
+        error
       );
 
-
-    /*
-     * Keep in-memory copy.
-     */
-
-    lastInitialData =
-      normalized;
-
-
-    lastDistricts =
-      normalized.data.districts;
-
-
-    lastCategories =
-      normalized.data.categories;
-
-
-    /*
-     * Save fresh data to cache.
-     */
-
-    saveInitialDataToCache(
-      normalized
-    );
-
-
-    return normalized;
+    }
 
   }
 
 
-  /* =======================================================
+  function clearInitialDataCache() {
+
+    try {
+
+      localStorage.removeItem(
+        CACHE_KEY
+      );
+
+    } catch (
+      error
+    ) {
+
+      /*
+        Ignore.
+      */
+
+    }
+
+  }
+
+
+  /* =========================================================
+     NORMALIZE INITIAL DATA
+     ========================================================= */
+
+  function normalizeInitialData(
+    response
+  ) {
+
+    if (
+      !response ||
+      typeof response !== "object"
+    ) {
+
+      throw new Error(
+        "Invalid initial data response."
+      );
+
+    }
+
+
+    /*
+      API may return:
+
+      {
+        success:true,
+        data:{
+          districts:[],
+          categories:[],
+          businesses:[]
+        }
+      }
+
+      OR:
+
+      {
+        success:true,
+        districts:[],
+        categories:[],
+        businesses:[]
+      }
+    */
+
+    const payload =
+      (
+        response.data &&
+        typeof response.data === "object"
+      )
+        ? response.data
+        : response;
+
+
+    if (
+      response.success === false
+    ) {
+
+      throw new Error(
+        response.message ||
+        "UBnux API returned success:false."
+      );
+
+    }
+
+
+    const result = {
+
+      success:
+        true,
+
+      districts:
+        Array.isArray(
+          payload.districts
+        )
+          ? payload.districts
+          : [],
+
+      categories:
+        Array.isArray(
+          payload.categories
+        )
+          ? payload.categories
+          : [],
+
+      businesses:
+        Array.isArray(
+          payload.businesses
+        )
+          ? payload.businesses
+          : [],
+
+      businessMeta:
+        payload.businessMeta ||
+        payload.meta ||
+        null
+
+    };
+
+
+    /*
+      If API response has no expected
+      collections at all, don't silently
+      treat it as valid application data.
+    */
+
+    const hasExpectedData =
+      Array.isArray(
+        payload.districts
+      ) ||
+      Array.isArray(
+        payload.categories
+      ) ||
+      Array.isArray(
+        payload.businesses
+      );
+
+
+    if (
+      !hasExpectedData
+    ) {
+
+      throw new Error(
+        "Initial data response does not contain districts, categories or businesses."
+      );
+
+    }
+
+
+    return result;
+
+  }
+
+
+  /* =========================================================
      GET INITIAL DATA
-  ====================================================== */
+     ========================================================= */
 
   async function getInitialData(
     options
@@ -2032,86 +1501,9 @@
 
 
     /*
-     * Re-resolve API URL.
-     */
-
-    if (
-      !isValidAPIURL()
-    ) {
-
-      resolveAPIURL();
-
-    }
-
-
-    if (
-      !isValidAPIURL()
-    ) {
-
-      var configError =
-        new Error(
-          "UBnux API URL is missing or invalid. " +
-          "Configure the stable Google Apps Script /exec URL."
-        );
-
-
-      configError.code =
-        "API_URL_INVALID";
-
-
-      if (
-        REQUIRE_API
-      ) {
-
-        throw configError;
-
-      }
-
-
-      return {
-
-        success:
-          false,
-
-        message:
-          getErrorMessage(
-            configError
-          ),
-
-        data: {
-
-          districts: [],
-
-          categories: [],
-
-          businesses: [],
-
-          businessMeta: {
-
-            total:
-              0,
-
-            offset:
-              0,
-
-            limit:
-              0,
-
-            hasMore:
-              false
-
-          }
-
-        }
-
-      };
-
-    }
-
-
-    /*
-     * Prevent duplicate initial-data requests.
-     */
+      Prevent duplicate initial-data
+      requests.
+    */
 
     if (
       initialDataPromise
@@ -2123,470 +1515,152 @@
 
 
     initialDataPromise =
-      fetchInitialData(
-        options
-      );
+      (
+        async function () {
+
+          try {
+
+            const response =
+              await request(
+                "getinitialdata"
+              );
 
 
-    try {
-
-      return await initialDataPromise;
-
-    } finally {
-
-      initialDataPromise =
-        null;
-
-    }
-
-  }
+            const data =
+              normalizeInitialData(
+                response
+              );
 
 
-  /* =======================================================
-     FAST INITIAL DATA
-  ====================================================== */
-
-  async function getInitialDataFast(
-    options
-  ) {
-
-    options =
-      options ||
-      {};
-
-
-    /*
-     * First try in-memory data.
-     */
-
-    if (
-      lastInitialData
-    ) {
-
-      return lastInitialData;
-
-    }
-
-
-    /*
-     * Then try valid cache.
-     */
-
-    try {
-
-      if (
-        App.cache &&
-        typeof App.cache
-          .getInitialDataCache ===
-        "function"
-      ) {
-
-        var cached =
-          App.cache.getInitialDataCache({
-
-            allowExpired:
-              false
-
-          });
-
-
-        if (
-          cached
-        ) {
-
-          var normalizedCached =
-            normalizeInitialData(
-              cached
+            writeInitialDataCache(
+              data
             );
 
 
-          lastInitialData =
-            normalizedCached;
+            return data;
 
+          } catch (
+            error
+          ) {
 
-          lastDistricts =
-            normalizedCached.data.districts;
+            /*
+              If network/API fails, use
+              cached initial data when available.
+            */
 
+            const cached =
+              readInitialDataCache();
 
-          lastCategories =
-            normalizedCached.data.categories;
 
+            if (
+              cached
+            ) {
 
-          return normalizedCached;
+              console.warn(
+                "[UBnux API] Latest initial data failed. Using cached data.",
+                error
+              );
 
-        }
 
-      }
+              return cached;
 
-    } catch (error) {
+            }
 
-      /*
-       * Ignore cache errors.
-       */
 
-    }
+            throw error;
 
+          } finally {
 
-    /*
-     * No valid cache.
-     */
-
-    return getInitialData(
-      options
-    );
-
-  }
-
-
-  /* =======================================================
-     REFRESH INITIAL DATA
-  ====================================================== */
-
-  async function refreshInitialData(
-    options
-  ) {
-
-    options =
-      options ||
-      {};
-
-
-    /*
-     * A refresh should be an actual network request.
-     *
-     * It still uses the same duplicate protection.
-     */
-
-    return getInitialData(
-      {
-
-        offset:
-          options.offset ??
-          0,
-
-        limit:
-          options.limit ??
-          DEFAULT_PAGE_SIZE,
-
-        retries:
-          options.retries ??
-          (
-            API_RETRIES +
-            1
-          )
-
-      }
-    );
-
-  }
-
-
-  /* =======================================================
-     GET BUSINESS PAGE
-  ====================================================== */
-
-  async function getBusinesses(
-    options
-  ) {
-
-    options =
-      options ||
-      {};
-
-
-    var offset =
-      options.offset ??
-      0;
-
-
-    var limit =
-      options.limit ??
-      DEFAULT_PAGE_SIZE;
-
-
-    var district =
-      options.district ??
-      "";
-
-
-    var category =
-      options.category ??
-      "";
-
-
-    var search =
-      options.search ??
-      "";
-
-
-    var sort =
-      options.sort ??
-      "";
-
-
-    /*
-     * Build a stable request key so identical simultaneous
-     * business requests do not hit Apps Script repeatedly.
-     */
-
-    var requestKey =
-      JSON.stringify({
-
-        offset:
-          offset,
-
-        limit:
-          limit,
-
-        district:
-          district,
-
-        category:
-          category,
-
-        search:
-          search,
-
-        sort:
-          sort
-
-      });
-
-
-    if (
-      businessPromises[
-        requestKey
-      ]
-    ) {
-
-      return businessPromises[
-        requestKey
-      ];
-
-    }
-
-
-    var promise =
-      (async function () {
-
-        var response =
-          await request(
-            "getbusinesses",
-            {
-
-              offset:
-                offset,
-
-              limit:
-                limit,
-
-              district:
-                district,
-
-              category:
-                category,
-
-              search:
-                search,
-
-              sort:
-                sort
-
-            },
-            options
-          );
-
-
-        var source =
-          response.data &&
-          typeof response.data ===
-          "object"
-
-            ? response.data
-
-            : response;
-
-
-        var businesses =
-          Array.isArray(
-            source.businesses
-          )
-            ? source.businesses
-            : [];
-
-
-        var meta =
-          source.businessMeta &&
-          typeof source.businessMeta ===
-          "object"
-
-            ? source.businessMeta
-
-            : {};
-
-
-        return {
-
-          success:
-            response.success !==
-            false,
-
-          message:
-            response.message ||
-            "",
-
-          businesses:
-            businesses,
-
-          businessMeta: {
-
-            total:
-              Number(
-                meta.total ??
-                businesses.length
-              ),
-
-            offset:
-              Number(
-                meta.offset ??
-                offset
-              ),
-
-            limit:
-              Number(
-                meta.limit ??
-                limit
-              ),
-
-            hasMore:
-              Boolean(
-                meta.hasMore
-              )
+            initialDataPromise =
+              null;
 
           }
 
-        };
-
-      })();
-
-
-    businessPromises[
-      requestKey
-    ] =
-      promise;
+        }
+      )();
 
 
-    try {
-
-      return await promise;
-
-    } finally {
-
-      delete businessPromises[
-        requestKey
-      ];
-
-    }
+    return initialDataPromise;
 
   }
 
 
-  /* =======================================================
-     GET DISTRICTS
-  ====================================================== */
+  /* =========================================================
+     GET INITIAL DATA FAST
+     ========================================================= */
 
-  async function getDistricts() {
+  async function getInitialDataFast() {
 
-    /*
-     * If initial data already contains districts,
-     * do NOT make another API request.
-     */
+    const cached =
+      readInitialDataCache();
+
 
     if (
-      Array.isArray(
-        lastDistricts
-      ) &&
-      lastDistricts.length > 0
+      cached
     ) {
+
+      /*
+        Return cache immediately.
+      */
 
       return {
 
-        success:
-          true,
+        data:
+          cached,
 
-        message:
-          "",
-
-        districts:
-          lastDistricts
+        fromCache:
+          true
 
       };
 
     }
 
 
-    /*
-     * If initial data is currently being loaded, wait for it.
-     */
-
-    if (
-      initialDataPromise
-    ) {
-
-      try {
-
-        var initial =
-          await initialDataPromise;
+    const data =
+      await getInitialData();
 
 
-        var initialDistricts =
-          initial &&
-          initial.data &&
-          Array.isArray(
-            initial.data.districts
-          )
+    return {
 
-            ? initial.data.districts
-            : [];
+      data,
 
+      fromCache:
+        false
 
-        if (
-          initialDistricts.length > 0
-        ) {
+    };
 
-          lastDistricts =
-            initialDistricts;
+  }
 
 
-          return {
+  /* =========================================================
+     REFRESH INITIAL DATA
+     ========================================================= */
 
-            success:
-              true,
-
-            message:
-              "",
-
-            districts:
-              initialDistricts
-
-          };
-
-        }
-
-      } catch (error) {
-
-        /*
-         * Continue to dedicated endpoint.
-         */
-
-      }
-
-    }
-
+  async function refreshInitialData() {
 
     /*
-     * Prevent duplicate district requests.
-     */
+      A refresh should always hit API.
+      But it still uses the same
+      deduplicated promise.
+    */
+
+    return await getInitialData();
+
+  }
+
+
+  /* =========================================================
+     GET DISTRICTS
+     ========================================================= */
+
+  async function getDistricts(
+    options
+  ) {
+
+    options =
+      options ||
+      {};
+
 
     if (
       districtsPromise
@@ -2598,164 +1672,71 @@
 
 
     districtsPromise =
-      (async function () {
+      (
+        async function () {
 
-        var response =
-          await request(
-            "getdistricts"
-          );
+          try {
 
-
-        var source =
-          response.data &&
-          typeof response.data ===
-          "object"
-
-            ? response.data
-
-            : response;
+            const response =
+              await request(
+                "getdistricts"
+              );
 
 
-        var districts =
-          Array.isArray(
-            source.districts
-          )
-            ? source.districts
-            : [];
+            if (
+              response.success === false
+            ) {
+
+              throw new Error(
+                response.message ||
+                "Unable to load districts."
+              );
+
+            }
 
 
-        lastDistricts =
-          districts;
+            const data =
+              Array.isArray(
+                response.data
+              )
+                ? response.data
+                : Array.isArray(
+                    response.districts
+                  )
+                  ? response.districts
+                  : [];
 
 
-        return {
+            return data;
 
-          success:
-            response.success !==
-            false,
+          } finally {
 
-          message:
-            response.message ||
-            "",
+            districtsPromise =
+              null;
 
-          districts:
-            districts
+          }
 
-        };
-
-      })();
+        }
+      )();
 
 
-    try {
-
-      return await districtsPromise;
-
-    } finally {
-
-      districtsPromise =
-        null;
-
-    }
+    return districtsPromise;
 
   }
 
 
-  /* =======================================================
+  /* =========================================================
      GET CATEGORIES
-  ====================================================== */
+     ========================================================= */
 
-  async function getCategories() {
+  async function getCategories(
+    options
+  ) {
 
-    /*
-     * If initial data already contains categories,
-     * do NOT make another API request.
-     */
+    options =
+      options ||
+      {};
 
-    if (
-      Array.isArray(
-        lastCategories
-      ) &&
-      lastCategories.length > 0
-    ) {
-
-      return {
-
-        success:
-          true,
-
-        message:
-          "",
-
-        categories:
-          lastCategories
-
-      };
-
-    }
-
-
-    /*
-     * If initial data is currently loading, wait for it.
-     */
-
-    if (
-      initialDataPromise
-    ) {
-
-      try {
-
-        var initial =
-          await initialDataPromise;
-
-
-        var initialCategories =
-          initial &&
-          initial.data &&
-          Array.isArray(
-            initial.data.categories
-          )
-
-            ? initial.data.categories
-            : [];
-
-
-        if (
-          initialCategories.length > 0
-        ) {
-
-          lastCategories =
-            initialCategories;
-
-
-          return {
-
-            success:
-              true,
-
-            message:
-              "",
-
-            categories:
-              initialCategories
-
-          };
-
-        }
-
-      } catch (error) {
-
-        /*
-         * Continue to dedicated endpoint.
-         */
-
-      }
-
-    }
-
-
-    /*
-     * Prevent duplicate category requests.
-     */
 
     if (
       categoriesPromise
@@ -2767,450 +1748,504 @@
 
 
     categoriesPromise =
-      (async function () {
+      (
+        async function () {
 
-        var response =
-          await request(
-            "getcategories"
-          );
+          try {
 
-
-        var source =
-          response.data &&
-          typeof response.data ===
-          "object"
-
-            ? response.data
-
-            : response;
+            const response =
+              await request(
+                "getcategories"
+              );
 
 
-        var categories =
-          Array.isArray(
-            source.categories
-          )
-            ? source.categories
-            : [];
+            if (
+              response.success === false
+            ) {
+
+              throw new Error(
+                response.message ||
+                "Unable to load categories."
+              );
+
+            }
 
 
-        lastCategories =
-          categories;
+            const data =
+              Array.isArray(
+                response.data
+              )
+                ? response.data
+                : Array.isArray(
+                    response.categories
+                  )
+                  ? response.categories
+                  : [];
 
 
-        return {
+            return data;
 
-          success:
-            response.success !==
-            false,
+          } finally {
 
-          message:
-            response.message ||
-            "",
+            categoriesPromise =
+              null;
 
-          categories:
-            categories
+          }
 
-        };
-
-      })();
+        }
+      )();
 
 
-    try {
-
-      return await categoriesPromise;
-
-    } finally {
-
-      categoriesPromise =
-        null;
-
-    }
+    return categoriesPromise;
 
   }
 
 
-  /* =======================================================
-     SUBMIT ENQUIRY
-  ====================================================== */
+  /* =========================================================
+     GET BUSINESSES
+     ========================================================= */
 
-  async function submitEnquiry(
-    enquiry
+  async function getBusinesses(
+    params,
+    options
   ) {
 
-    enquiry =
-      enquiry ||
+    options =
+      options ||
       {};
 
 
-    var payload = {
+    /*
+      Create a stable request key.
 
-      businessId:
-        getSafeString(
-          enquiry.businessId
-        ),
+      This prevents simultaneous identical
+      business requests.
+    */
 
-      name:
-        getSafeString(
-          enquiry.name
-        ),
+    const requestKey =
+      JSON.stringify(
+        params ||
+        {}
+      );
 
-      mobile:
-        getSafeString(
-          enquiry.mobile
-        ),
 
-      message:
-        getSafeString(
-          enquiry.message
-        )
+    if (
+      businessesPromise &&
+      businessesPromise.key ===
+      requestKey
+    ) {
+
+      return businessesPromise.promise;
+
+    }
+
+
+    const promise =
+      (
+        async function () {
+
+          try {
+
+            const response =
+              await request(
+                "getbusinesses",
+                params || {}
+              );
+
+
+            if (
+              response.success === false
+            ) {
+
+              throw new Error(
+                response.message ||
+                "Unable to load businesses."
+              );
+
+            }
+
+
+            return response;
+
+          } finally {
+
+            if (
+              businessesPromise &&
+              businessesPromise.key ===
+              requestKey
+            ) {
+
+              businessesPromise =
+                null;
+
+            }
+
+          }
+
+        }
+      )();
+
+
+    businessesPromise = {
+
+      key:
+        requestKey,
+
+      promise
 
     };
 
 
-    if (
-      !payload.businessId
-    ) {
+    return promise;
 
-      throw new Error(
-        "Business information is missing."
-      );
-
-    }
+  }
 
 
-    if (
-      !payload.name
-    ) {
+  /* =========================================================
+     GET SINGLE BUSINESS
+     ========================================================= */
 
-      throw new Error(
-        "Please enter your name."
-      );
+  async function getBusiness(
+    businessId
+  ) {
 
-    }
+    return await request(
+      "getbusiness",
+      {
+        businessId:
+          businessId
+      }
+    );
 
-
-    if (
-      !payload.mobile
-    ) {
-
-      throw new Error(
-        "Please enter your mobile number."
-      );
-
-    }
+  }
 
 
-    if (
-      !payload.message
-    ) {
+  /* =========================================================
+     GET PRODUCTS
+     ========================================================= */
 
-      throw new Error(
-        "Please enter your enquiry message."
-      );
+  async function getProducts(
+    params
+  ) {
 
-    }
+    return await request(
+      "getproducts",
+      params || {}
+    );
+
+  }
+
+
+  /* =========================================================
+     GET SERVICES
+     ========================================================= */
+
+  async function getServices(
+    params
+  ) {
+
+    return await request(
+      "getservices",
+      params || {}
+    );
+
+  }
+
+
+  /* =========================================================
+     GET STATUS
+     ========================================================= */
+
+  async function getStatus() {
+
+    return await request(
+      "getstatus"
+    );
+
+  }
+
+
+  /* =========================================================
+     BUSINESS LOGIN
+     ========================================================= */
+
+  async function businessLogin(
+    credentials
+  ) {
+
+    return await request(
+      "businesslogin",
+      credentials || {},
+      "POST",
+      credentials || {}
+    );
+
+  }
+
+
+  /* =========================================================
+     BUSINESS REGISTER
+     ========================================================= */
+
+  async function businessRegister(
+    data
+  ) {
+
+    return await request(
+      "businessregister",
+      data || {},
+      "POST",
+      data || {}
+    );
+
+  }
+
+
+  /* =========================================================
+     BUSINESS FORGOT PASSWORD
+     ========================================================= */
+
+  async function businessForgotPassword(
+    data
+  ) {
+
+    return await request(
+      "businessforgotpassword",
+      data || {},
+      "POST",
+      data || {}
+    );
+
+  }
+
+
+  /* =========================================================
+     VERIFY BUSINESS OTP
+     ========================================================= */
+
+  async function verifyBusinessOtp(
+    data
+  ) {
+
+    return await request(
+      "verifybusinessotp",
+      data || {},
+      "POST",
+      data || {}
+    );
+
+  }
+
+
+  /* =========================================================
+     BUSINESS DASHBOARD
+     ========================================================= */
+
+  async function getBusinessDashboard(
+    params
+  ) {
+
+    return await request(
+      "getbusinessdashboard",
+      params || {}
+    );
+
+  }
+
+
+  /* =========================================================
+     BUSINESS PROFILE
+     ========================================================= */
+
+  async function getBusinessProfile(
+    params
+  ) {
+
+    return await request(
+      "getbusinessprofile",
+      params || {}
+    );
+
+  }
+
+
+  /* =========================================================
+     BUSINESS ENQUIRIES
+     ========================================================= */
+
+  async function getBusinessEnquiries(
+    params
+  ) {
+
+    return await request(
+      "getbusinessenquiries",
+      params || {}
+    );
+
+  }
+
+
+  /* =========================================================
+     BUSINESS SERVICES
+     ========================================================= */
+
+  async function getBusinessServices(
+    params
+  ) {
+
+    return await request(
+      "getbusinessservices",
+      params || {}
+    );
+
+  }
+
+
+  /* =========================================================
+     BUSINESS SETTINGS
+     ========================================================= */
+
+  async function getBusinessSettings(
+    params
+  ) {
+
+    return await request(
+      "getbusinesssettings",
+      params || {}
+    );
+
+  }
+
+
+  /* =========================================================
+     SUBMIT ENQUIRY
+     ========================================================= */
+
+  async function submitEnquiry(
+    data
+  ) {
+
+    const payload =
+      data || {};
 
 
     /*
-     * Preferred POST.
-     */
+      POST is preferred.
+    */
 
     try {
 
-      var response =
-        await postRequest(
+      const response =
+        await request(
           "submitenquiry",
+          payload,
+          "POST",
           payload
         );
 
 
-      return {
+      return response;
 
-        success:
-          response.success !==
-          false,
-
-        message:
-          response.message ||
-          "Enquiry submitted successfully.",
-
-        data:
-          response.data ||
-          null
-
-      };
-
-    } catch (postError) {
+    } catch (
+      postError
+    ) {
 
       /*
-       * GET fallback.
-       */
+        Some older Apps Script deployments
+        may not support POST for this action.
 
-      try {
+        Fallback to GET.
+      */
 
-        var getResponse =
-          await request(
-            "submitenquiry",
-            payload
-          );
+      console.warn(
+        "[UBnux API] POST enquiry failed. Trying GET fallback.",
+        postError
+      );
 
 
-        return {
-
-          success:
-            getResponse.success !==
-            false,
-
-          message:
-            getResponse.message ||
-            "Enquiry submitted successfully.",
-
-          data:
-            getResponse.data ||
-            null
-
-        };
-
-      } catch (getError) {
-
-        throw new Error(
-          getErrorMessage(
-            getError
-          )
-        );
-
-      }
+      return await request(
+        "submitenquiry",
+        payload
+      );
 
     }
 
   }
 
 
-  /* =======================================================
-     CREATE ENQUIRY
-  ====================================================== */
-
-  async function createEnquiry(
-    enquiry
-  ) {
-
-    return submitEnquiry(
-      enquiry
-    );
-
-  }
-
-
-  /* =======================================================
-     SEND ENQUIRY
-  ====================================================== */
-
-  async function sendEnquiry(
-    enquiry
-  ) {
-
-    return submitEnquiry(
-      enquiry
-    );
-
-  }
-
-
-  /* =======================================================
-     DETECT DISTRICT BY LOCATION
-  ====================================================== */
+  /* =========================================================
+     DETECT DISTRICT
+     ========================================================= */
 
   async function detectDistrictByLocation(
     latitude,
     longitude
   ) {
 
-    var lat =
-      Number(
-        latitude
-      );
+    return await request(
+      "detectdistrict",
+      {
+
+        latitude:
+          latitude,
+
+        longitude:
+          longitude
+
+      }
+    );
+
+  }
 
 
-    var lng =
-      Number(
-        longitude
-      );
+  /* =========================================================
+     HEALTH CHECK
+     ========================================================= */
+
+  async function checkApi() {
+
+    try {
+
+      const response =
+        await request(
+          "getstatus"
+        );
 
 
-    if (
-      !Number.isFinite(
-        lat
-      ) ||
-      !Number.isFinite(
-        lng
-      )
+      return {
+
+        success:
+          true,
+
+        data:
+          response
+
+      };
+
+    } catch (
+      error
     ) {
 
-      throw new Error(
-        "Invalid location coordinates."
-      );
+      return {
+
+        success:
+          false,
+
+        error:
+          error
+
+      };
 
     }
 
-
-    var response =
-      await request(
-        "detectdistrict",
-        {
-
-          latitude:
-            lat,
-
-          longitude:
-            lng
-
-        }
-      );
-
-
-    var source =
-      response.data &&
-      typeof response.data ===
-      "object"
-
-        ? response.data
-
-        : response;
-
-
-    return {
-
-      success:
-        response.success !==
-        false,
-
-      message:
-        response.message ||
-        "",
-
-      district:
-        source.district ||
-        source.selectedDistrict ||
-        null,
-
-      districtId:
-        source.districtId ||
-        source.id ||
-        "",
-
-      data:
-        source
-
-    };
-
   }
 
 
-  /* =======================================================
-     COMPATIBILITY DETECT DISTRICT
-  ====================================================== */
+  /* =========================================================
+     CLEAR REQUEST STATE
+     ========================================================= */
 
-  async function detectDistrict(
-    latitude,
-    longitude
-  ) {
-
-    return detectDistrictByLocation(
-      latitude,
-      longitude
-    );
-
-  }
-
-
-  /* =======================================================
-     GENERIC GET API ACTION
-  ====================================================== */
-
-  async function call(
-    action,
-    params,
-    options
-  ) {
-
-    return request(
-      action,
-      params,
-      options
-    );
-
-  }
-
-
-  /* =======================================================
-     GENERIC POST API ACTION
-  ====================================================== */
-
-  async function post(
-    action,
-    payload,
-    options
-  ) {
-
-    return postRequest(
-      action,
-      payload,
-      options
-    );
-
-  }
-
-
-  /* =======================================================
-     API STATUS
-  ====================================================== */
-
-  function getStatus() {
-
-    return {
-
-      configured:
-        isValidAPIURL(),
-
-      url:
-        API_URL,
-
-      urlSource:
-        API_URL_SOURCE,
-
-      isTemporaryGoogleURL:
-        isStaleGoogleUserContentURL(
-          API_URL
-        ),
-
-      timeout:
-        API_TIMEOUT,
-
-      retries:
-        API_RETRIES,
-
-      requireAPI:
-        REQUIRE_API
-
-    };
-
-  }
-
-
-  /* =======================================================
-     RESET API MEMORY CACHE
-  ====================================================== */
-
-  function clearAPIMemoryCache() {
-
-    lastInitialData =
-      null;
-
-    lastDistricts =
-      null;
-
-    lastCategories =
-      null;
+  function resetRequestState() {
 
     initialDataPromise =
       null;
@@ -3221,132 +2256,107 @@
     categoriesPromise =
       null;
 
-    businessPromises =
-      {};
+    businessesPromise =
+      null;
 
   }
 
 
-  /* =======================================================
-     PUBLIC API OBJECT
-  ====================================================== */
+  /* =========================================================
+     PUBLIC API
+     ========================================================= */
 
-  var api = {
+  const API = {
 
-    url:
-      API_URL,
+    getApiUrl,
 
-    timeout:
-      API_TIMEOUT,
+    setApiUrl,
 
-    retries:
-      API_RETRIES,
+    request,
 
-    request:
-      request,
+    fetchWithTimeout,
 
-    postRequest:
-      postRequest,
+    getInitialData,
 
-    post:
-      post,
+    getInitialDataFast,
 
-    call:
-      call,
+    refreshInitialData,
 
-    getStatus:
-      getStatus,
+    getDistricts,
 
-    setAPIURL:
-      setAPIURL,
+    getCategories,
 
-    resolveAPIURL:
-      resolveAPIURL,
+    getBusinesses,
 
-    clearAPIMemoryCache:
-      clearAPIMemoryCache,
+    getBusiness,
 
-    getInitialData:
-      getInitialData,
+    getProducts,
 
-    getInitialDataFast:
-      getInitialDataFast,
+    getServices,
 
-    refreshInitialData:
-      refreshInitialData,
+    getStatus,
 
-    fetchInitialData:
-      fetchInitialData,
+    businessLogin,
 
-    getBusinesses:
-      getBusinesses,
+    businessRegister,
 
-    getDistricts:
-      getDistricts,
+    businessForgotPassword,
 
-    getCategories:
-      getCategories,
+    verifyBusinessOtp,
 
-    submitEnquiry:
-      submitEnquiry,
+    getBusinessDashboard,
 
-    createEnquiry:
-      createEnquiry,
+    getBusinessProfile,
 
-    sendEnquiry:
-      sendEnquiry,
+    getBusinessEnquiries,
 
-    detectDistrict:
-      detectDistrict,
+    getBusinessServices,
 
-    detectDistrictByLocation:
-      detectDistrictByLocation
+    getBusinessSettings,
+
+    submitEnquiry,
+
+    detectDistrictByLocation,
+
+    checkApi,
+
+    readInitialDataCache,
+
+    writeInitialDataCache,
+
+    clearInitialDataCache,
+
+    resetRequestState
 
   };
 
 
-  /* =======================================================
+  /* =========================================================
      APP NAMESPACE
-  ====================================================== */
+     ========================================================= */
 
   App.api =
-    api;
+    API;
 
 
-  /* =======================================================
-     TOP-LEVEL COMPATIBILITY ALIASES
-  ====================================================== */
+  /*
+    Legacy namespace compatibility.
+  */
 
-  App.requestAPI =
-    request;
-
-
-  App.callAPI =
-    call;
+  window.ZilaBizAPI =
+    API;
 
 
-  App.postAPI =
-    post;
+  window.UBnuxAPI =
+    API;
 
+
+  /* =========================================================
+     LEGACY GLOBAL ALIASES
+     ========================================================= */
 
   App.getInitialData =
     getInitialData;
-
-
-  App.getInitialDataFast =
-    getInitialDataFast;
-
-
-  App.refreshInitialData =
-    refreshInitialData;
-
-
-  App.fetchInitialData =
-    fetchInitialData;
-
-
-  App.getBusinesses =
-    getBusinesses;
 
 
   App.getDistricts =
@@ -3357,69 +2367,55 @@
     getCategories;
 
 
+  App.getBusinesses =
+    getBusinesses;
+
+
+  App.getBusiness =
+    getBusiness;
+
+
   App.submitEnquiry =
     submitEnquiry;
 
 
-  App.createEnquiry =
-    createEnquiry;
+  /* =========================================================
+     DEBUG INFORMATION
+     ========================================================= */
+
+  console.log(
+    "[UBnux API] Initialized."
+  );
 
 
-  App.sendEnquiry =
-    sendEnquiry;
+  console.log(
+    "[UBnux API] Canonical endpoint:",
+    apiUrl
+  );
 
 
-  App.detectDistrict =
-    detectDistrict;
+  /*
+    Safety check:
+    If somehow a googleusercontent URL
+    enters runtime state, immediately
+    restore canonical endpoint.
+  */
 
+  if (
+    apiUrl.includes(
+      "googleusercontent.com"
+    )
+  ) {
 
-  App.detectDistrictByLocation =
-    detectDistrictByLocation;
-
-
-  App.getAPIStatus =
-    getStatus;
-
-
-  /* =======================================================
-     GLOBAL API COMPATIBILITY
-  ====================================================== */
-
-  window.UBnuxAPI =
-    api;
-
-
-  window.ZilaBizAPI =
-    api;
-
-
-  /* =======================================================
-     READY FLAG
-  ====================================================== */
-
-  App.apiReady =
-    true;
-
-
-  window.UBnux =
-    App;
-
-  window.ZilaBiz =
-    App;
-
-
-  /* =======================================================
-     DEBUG
-  ====================================================== */
-
-  try {
-
-    console.log(
-      "[UBnux API] API initialized.",
-      getStatus()
+    console.warn(
+      "[UBnux API] Invalid redirected endpoint detected. Restoring canonical /exec endpoint."
     );
 
-  } catch (error) {}
+
+    apiUrl =
+      DEFAULT_API_URL;
+
+  }
 
 
 })(window, document);
