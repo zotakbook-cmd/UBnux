@@ -1,4 +1,3 @@
-
 /* =========================================================
    UBnux - API Manager
    File: assets/js/api.js
@@ -6,13 +5,14 @@
    Responsibilities:
    - Google Apps Script API communication
    - Initial data loading
-   - API timeout
+   - Safe timeout handling
    - Retry handling
    - Safe JSON parsing
    - Cache integration
    - Enquiry submission
    - District/location detection
    - Compatibility aliases
+   - Business API compatibility
    ========================================================= */
 
 (function (window, document) {
@@ -59,29 +59,51 @@
 
 
   /* =======================================================
-     API SETTINGS
+     API TIMEOUT
+     
+     Google Apps Script may take longer during
+     cold start / redirect / first request.
+
+     Previous:
+       15000 ms
+
+     New:
+       60000 ms
   ====================================================== */
 
   var API_TIMEOUT =
-    Number(
-      CONFIG.API_TIMEOUT ||
-      CONFIG.apiTimeout ||
-      15000
+    Math.max(
+      10000,
+      Number(
+        CONFIG.API_TIMEOUT ||
+        CONFIG.apiTimeout ||
+        60000
+      )
     );
 
 
+  /* =======================================================
+     RETRY SETTINGS
+  ====================================================== */
+
   var API_RETRIES =
-    Number(
-      CONFIG.API_RETRIES ??
-      CONFIG.RETRIES ??
-      2
+    Math.max(
+      0,
+      Number(
+        CONFIG.API_RETRIES ??
+        CONFIG.RETRIES ??
+        1
+      )
     );
 
 
   var RETRY_DELAY =
-    Number(
-      CONFIG.RETRY_DELAY ||
-      700
+    Math.max(
+      100,
+      Number(
+        CONFIG.RETRY_DELAY ||
+        1000
+      )
     );
 
 
@@ -154,6 +176,19 @@
 
 
     if (
+      error.name ===
+      "AbortError"
+    ) {
+
+      return (
+        "UBnux API request timed out. " +
+        "Please try again."
+      );
+
+    }
+
+
+    if (
       error.message
     ) {
 
@@ -164,7 +199,37 @@
     }
 
 
-    return "Unable to communicate with the server.";
+    return (
+      "Unable to communicate " +
+      "with the UBnux server."
+    );
+
+  }
+
+
+  /* =======================================================
+     CREATE TIMEOUT ERROR
+  ====================================================== */
+
+  function createTimeoutError() {
+
+    var error =
+      new Error(
+        "UBnux API request timed out after " +
+        API_TIMEOUT +
+        " ms."
+      );
+
+
+    error.name =
+      "UBnuxTimeoutError";
+
+
+    error.isTimeout =
+      true;
+
+
+    return error;
 
   }
 
@@ -191,10 +256,8 @@
 
 
       return (
-        url.protocol ===
-          "https:" ||
-        url.protocol ===
-          "http:"
+        url.protocol === "https:" ||
+        url.protocol === "http:"
       );
 
     } catch (error) {
@@ -244,8 +307,7 @@
 
     if (
       params &&
-      typeof params ===
-      "object"
+      typeof params === "object"
     ) {
 
       Object.keys(
@@ -258,10 +320,8 @@
 
 
           if (
-            value ===
-              undefined ||
-            value ===
-              null
+            value === undefined ||
+            value === null
           ) {
 
             return;
@@ -270,8 +330,7 @@
 
 
           if (
-            typeof value ===
-            "object"
+            typeof value === "object"
           ) {
 
             try {
@@ -308,6 +367,11 @@
 
   /* =======================================================
      FETCH WITH TIMEOUT
+
+     Important:
+     - Each request gets its own AbortController.
+     - Timeout is cleared in finally.
+     - AbortError is converted into a clean timeout error.
   ====================================================== */
 
   async function fetchWithTimeout(
@@ -319,10 +383,6 @@
       options ||
       {};
 
-
-    /*
-     * AbortController support.
-     */
 
     var controller =
       typeof AbortController !==
@@ -337,14 +397,23 @@
       null;
 
 
+    var timedOut =
+      false;
+
+
     if (controller) {
 
       options.signal =
         controller.signal;
 
+
       timeoutId =
         setTimeout(
           function () {
+
+            timedOut =
+              true;
+
 
             try {
 
@@ -370,9 +439,27 @@
 
       return response;
 
+    } catch (error) {
+
+      if (
+        timedOut ||
+        (
+          error &&
+          error.name ===
+          "AbortError"
+        )
+      ) {
+
+        throw createTimeoutError();
+
+      }
+
+
+      throw error;
+
     } finally {
 
-      if (timeoutId) {
+      if (timeoutId !== null) {
 
         clearTimeout(
           timeoutId
@@ -452,9 +539,8 @@
     } catch (error) {
 
       /*
-       * Sometimes Apps Script /
-       * proxy layers may return JSON
-       * wrapped in unexpected whitespace.
+       * Apps Script / proxy response
+       * may contain extra text around JSON.
        */
 
       var firstBrace =
@@ -565,8 +651,7 @@
 
     var source =
       response.data &&
-      typeof response.data ===
-      "object"
+      typeof response.data === "object"
 
         ? response.data
 
@@ -599,8 +684,7 @@
 
     var meta =
       source.businessMeta &&
-      typeof source.businessMeta ===
-      "object"
+      typeof source.businessMeta === "object"
 
         ? source.businessMeta
 
@@ -691,7 +775,7 @@
 
 
   /* =======================================================
-     REQUEST
+     GET REQUEST
   ====================================================== */
 
   async function request(
@@ -749,6 +833,11 @@
 
               },
 
+              /*
+               * Do not let browser cache
+               * return an old Apps Script response.
+               */
+
               cache:
                 "no-store"
 
@@ -770,6 +859,27 @@
           error;
 
 
+        /*
+         * Do not retry configuration errors.
+         */
+
+        if (
+          error &&
+          (
+            error.message ===
+            "UBnux API URL is not configured."
+          )
+        ) {
+
+          break;
+
+        }
+
+
+        /*
+         * Retry remaining attempts.
+         */
+
         if (
           attempt <
           attempts - 1
@@ -789,11 +899,17 @@
     }
 
 
-    throw (
-      lastError ||
-      new Error(
-        "API request failed."
-      )
+    if (
+      lastError
+    ) {
+
+      throw lastError;
+
+    }
+
+
+    throw new Error(
+      "API request failed."
     );
 
   }
@@ -851,76 +967,33 @@
       attempt++
     ) {
 
-      var controller =
-        typeof AbortController !==
-        "undefined"
-
-          ? new AbortController()
-
-          : null;
-
-
-      var timeoutId =
-        null;
-
-
       try {
 
-        if (controller) {
+        var response =
+          await fetchWithTimeout(
+            url,
+            {
 
-          timeoutId =
-            setTimeout(
-              function () {
+              method:
+                "POST",
 
-                try {
+              headers: {
 
-                  controller.abort();
+                "Content-Type":
+                  "application/json",
 
-                } catch (ignore) {}
+                "Accept":
+                  "application/json"
 
               },
-              API_TIMEOUT
-            );
 
-        }
+              body:
+                JSON.stringify(
+                  payload ||
+                  {}
+                )
 
-
-        var fetchOptions = {
-
-          method:
-            "POST",
-
-          headers: {
-
-            "Content-Type":
-              "application/json",
-
-            "Accept":
-              "application/json"
-
-          },
-
-          body:
-            JSON.stringify(
-              payload ||
-              {}
-            )
-
-        };
-
-
-        if (controller) {
-
-          fetchOptions.signal =
-            controller.signal;
-
-        }
-
-
-        var response =
-          await fetch(
-            url,
-            fetchOptions
+            }
           );
 
 
@@ -948,16 +1021,6 @@
             (
               attempt + 1
             )
-          );
-
-        }
-
-      } finally {
-
-        if (timeoutId) {
-
-          clearTimeout(
-            timeoutId
           );
 
         }
@@ -1018,7 +1081,7 @@
 
 
     /*
-     * Save fresh API data into cache.
+     * Save fresh data into cache.
      */
 
     try {
@@ -1027,7 +1090,7 @@
         App.cache &&
         typeof App.cache
           .setInitialDataCache ===
-          "function"
+        "function"
       ) {
 
         App.cache.setInitialDataCache(
@@ -1049,8 +1112,7 @@
 
       /*
        * Cache failure must never
-       * make a successful API
-       * request fail.
+       * break successful API request.
        */
 
     }
@@ -1095,7 +1157,8 @@
 
       return {
 
-        success: false,
+        success:
+          false,
 
         message:
           getErrorMessage(
@@ -1112,13 +1175,17 @@
 
           businessMeta: {
 
-            total: 0,
+            total:
+              0,
 
-            offset: 0,
+            offset:
+              0,
 
-            limit: 0,
+            limit:
+              0,
 
-            hasMore: false
+            hasMore:
+              false
 
           }
 
@@ -1159,7 +1226,7 @@
         App.cache &&
         typeof App.cache
           .getInitialDataCache ===
-          "function"
+        "function"
       ) {
 
         var cached =
@@ -1179,13 +1246,17 @@
 
       }
 
-    } catch (error) {}
+    } catch (error) {
 
+      /*
+       * Ignore cache errors.
+       */
+
+    }
 
 
     /*
-     * If no cache exists,
-     * request API.
+     * No valid cache.
      */
 
     return getInitialData(
@@ -1284,8 +1355,7 @@
 
     var source =
       response.data &&
-      typeof response.data ===
-      "object"
+      typeof response.data === "object"
 
         ? response.data
 
@@ -1302,10 +1372,10 @@
 
     var meta =
       source.businessMeta &&
-      typeof source.businessMeta ===
-      "object"
+      typeof source.businessMeta === "object"
 
         ? source.businessMeta
+
         : {};
 
 
@@ -1369,10 +1439,10 @@
 
     var source =
       response.data &&
-      typeof response.data ===
-      "object"
+      typeof response.data === "object"
 
         ? response.data
+
         : response;
 
 
@@ -1411,10 +1481,10 @@
 
     var source =
       response.data &&
-      typeof response.data ===
-      "object"
+      typeof response.data === "object"
 
         ? response.data
+
         : response;
 
 
@@ -1522,7 +1592,7 @@
 
 
     /*
-     * Preferred POST endpoint.
+     * Preferred POST.
      */
 
     try {
@@ -1552,11 +1622,7 @@
     } catch (postError) {
 
       /*
-       * Fallback to GET.
-       *
-       * Useful for Apps Script deployments
-       * where POST handling has not yet
-       * been implemented.
+       * GET fallback.
        */
 
       try {
@@ -1682,10 +1748,10 @@
 
     var source =
       response.data &&
-      typeof response.data ===
-      "object"
+      typeof response.data === "object"
 
         ? response.data
+
         : response;
 
 
@@ -1734,7 +1800,7 @@
 
 
   /* =======================================================
-     GENERIC API ACTION
+     GENERIC GET API ACTION
   ====================================================== */
 
   async function call(
@@ -1743,15 +1809,38 @@
     options
   ) {
 
-    var response =
-      await request(
-        action,
-        params,
-        options
-      );
+    return request(
+      action,
+      params,
+      options
+    );
+
+  }
 
 
-    return response;
+  /* =======================================================
+     GENERIC POST API ACTION
+
+     Useful for future business dashboard APIs:
+       businessregister
+       businesslogin
+       resetbusinesspassword
+       updatebusinessprofile
+       savebusinessservice
+       etc.
+  ====================================================== */
+
+  async function post(
+    action,
+    payload,
+    options
+  ) {
+
+    return postRequest(
+      action,
+      payload,
+      options
+    );
 
   }
 
@@ -1804,6 +1893,9 @@
 
     postRequest:
       postRequest,
+
+    post:
+      post,
 
     call:
       call,
@@ -1868,6 +1960,10 @@
 
   App.callAPI =
     call;
+
+
+  App.postAPI =
+    post;
 
 
   App.getInitialData =
