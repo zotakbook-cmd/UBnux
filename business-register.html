@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Register Your Business | UBnux</title>
+
+  <meta
+    name="description"
+    content="Register your local business on UBnux and reach more customers."
+  >
+
+  <meta
+    name="robots"
+    content="noindex,nofollow"
+  >
+
+  <link
+    rel="stylesheet"
+    href="assets/css/style.css"
+  >
+
+  <style>
+
+    [hidden] {
+      display: none !important;
+    }
+
+    body {
+      margin: 0;
+      background: #f7f8fa;
+    }
+
+    .register-page {
+      max-width: 1050px;
+      margin: auto;
+      padding: 35px 18px 70px;
+    }
+
+    .register-header {
+      margin-bottom: 25px;
+      padding: 35px;
+      border-radius: 22px;
+      background: #111827;
+      color: #fff;
+    }
+
+    .register-header h1 {
+      margin: 0 0 12px;
+      font-size: clamp(30px,5vw,45px);
+    }
+
+    .register-header p {
+      max-width: 700px;
+      margin: 0;
+      color: rgba(255,255,255,.78);
+      line-height: 1.7;
+    }
+
+    .register-card {
+      padding: 35px;
+      border-radius: 20px;
+      background: #fff;
+      box-shadow: 0 8px 35px rgba(0,0,0,.08);
+    }
+
+    .section-title {
+      margin: 0 0 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #eee;
+      font-size: 21px;
+      color: #111827;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns:
+        repeat(2,minmax(0,1fr));
+      gap: 18px;
+    }
+
+    .form-group {
+      margin-bottom: 2px;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 7px;
+      color: #374151;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 48px;
+      padding: 11px 13px;
+      border: 1px solid #d9dde3;
+      border-radius: 10px;
+      background: #fff;
+      color: #111827;
+      font: inherit;
+      outline: none;
+    }
+
+    .form-group textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: #111827;
+      box-shadow: 0 0 0 3px rgba(17,24,39,.07);
+    }
+
+    .required {
+      color: #dc2626;
+    }
+
+    .terms {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      margin-top: 25px;
+      color: #6b7280;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .terms input {
+      margin-top: 4px;
+    }
+
+    .terms a {
+      color: #111827;
+      font-weight: 600;
+    }
+
+    .submit-area {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 25px;
+    }
+
+    .btn {
+      min-height: 48px;
+      padding: 0 22px;
+      border-radius: 10px;
+      border: 0;
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #111827;
+    }
+
+    .btn-primary {
+      background: #111827;
+      color: #fff;
+    }
+
+    .btn:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    .message {
+      display: none;
+      margin-bottom: 20px;
+      padding: 13px 15px;
+      border-radius: 10px;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .message.show {
+      display: block;
+    }
+
+    .message.error {
+      background: #fef2f2;
+      color: #991b1b;
+    }
+
+    .message.success {
+      background: #f0fdf4;
+      color: #166534;
+    }
+
+    .login-link {
+      margin-top: 22px;
+      text-align: center;
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    .login-link a {
+      color: #111827;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    @media (max-width: 700px) {
+
+      .register-header,
+      .register-card {
+        padding: 25px 20px;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .form-group.full {
+        grid-column: auto;
+      }
+
+      .submit-area {
+        flex-direction: column-reverse;
+      }
+
+      .submit-area .btn {
+        width: 100%;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <main class="register-page">
+
+    <header class="register-header">
+
+      <h1>
+        Register Your Business
+      </h1>
+
+      <p>
+        Add your business to UBnux and create a digital presence
+        where local customers can discover your products and services.
+      </p>
+
+    </header>
+
+
+    <section class="register-card">
+
+      <div
+        id="message"
+        class="message"
+        role="alert"
+      ></div>
+
+
+      <form
+        id="registerForm"
+        novalidate
+      >
+
+        <h2 class="section-title">
+          Business Information
+        </h2>
+
+
+        <div class="form-grid">
+
+          <div class="form-group">
+
+            <label for="businessName">
+              Business Name
+              <span class="required">*</span>
+            </label>
+
+            <input
+              id="businessName"
+              type="text"
+              placeholder="Enter business name"
+              autocomplete="organization"
+              required
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label for="ownerName">
+              Owner Name
+            </label>
+
+            <input
+              id="ownerName"
+              type="text"
+              placeholder="Business owner name"
+              autocomplete="name"
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label for="mobile">
+              Mobile Number
+              <span class="required">*</span>
+            </label>
+
+            <input
+              id="mobile"
+              type="tel"
+              inputmode="numeric"
+              maxlength="15"
+              placeholder="Enter mobile number"
+              autocomplete="tel"
+              required
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label for="email">
+              Email
+            </label>
+
+            <input
+              id="email"
+              type="email"
+              placeholder="Business email"
+              autocomplete="email"
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label for="category">
+              Category
+              <span class="required">*</span>
+            </label>
+
+            <select
+              id="category"
+              required
+            >
+
+              <option value="">
+                Select category
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label for="district">
+              District
+              <span class="required">*</span>
+            </label>
+
+            <select
+              id="district"
+              required
+            >
+
+              <option value="">
+                Select district
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label for="area">
+              Area / Locality
+            </label>
+
+            <input
+              id="area"
+              type="text"
+              placeholder="e.g. Andar Dhala"
+              autocomplete="address-level3"
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label for="pincode">
+              Pincode
+            </label>
+
+            <input
+              id="pincode"
+              type="text"
+              inputmode="numeric"
+              maxlength="6"
+              placeholder="6 digit pincode"
+              autocomplete="postal-code"
+            >
+
+          </div>
+
+
+          <div class="form-group full">
+
+            <label for="address">
+              Full Address
+            </label>
+
+            <textarea
+              id="address"
+              placeholder="Enter complete business address"
+              autocomplete="street-address"
+            ></textarea>
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label for="password">
+              Create Password
+              <span class="required">*</span>
+            </label>
+
+            <input
+              id="password"
+              type="password"
+              minlength="6"
+              placeholder="Minimum 6 characters"
+              autocomplete="new-password"
+              required
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label for="confirmPassword">
+              Confirm Password
+              <span class="required">*</span>
+            </label>
+
+            <input
+              id="confirmPassword"
+              type="password"
+              minlength="6"
+              placeholder="Re-enter password"
+              autocomplete="new-password"
+              required
+            >
+
+          </div>
+
+
+          <div class="form-group full">
+
+            <label for="description">
+              Short Business Description
+            </label>
+
+            <textarea
+              id="description"
+              maxlength="500"
+              placeholder="Tell customers briefly about your business..."
+            ></textarea>
+
+          </div>
+
+        </div>
+
+
+        <label class="terms">
+
+          <input
+            id="terms"
+            type="checkbox"
+            required
+          >
+
+          <span>
+            I agree to the
+            <a href="terms.html">
+              Terms & Conditions
+            </a>
+            and confirm that the information provided is accurate.
+          </span>
+
+        </label>
+
+
+        <div class="submit-area">
+
+          <a
+            href="index.html"
+            class="btn btn-secondary"
+          >
+            Cancel
+          </a>
+
+          <button
+            id="registerButton"
+            type="submit"
+            class="btn btn-primary"
+          >
+            Create Business Account
+          </button>
+
+        </div>
+
+      </form>
+
+
+      <div class="login-link">
+
+        Already have an account?
+
+        <a href="business-login.html">
+          Login here
+        </a>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/state.js"></script>
+  <script src="assets/js/cache.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/utils.js"></script>
+
+
+  <script>
+
+    (function () {
+
+      "use strict";
+
+
+      const App =
+        window.UBnux ||
+        window.ZilaBiz ||
+        {};
+
+
+      function text(value) {
+
+        return String(
+          value == null
+            ? ""
+            : value
+        ).trim();
+
+      }
+
+
+      function get(
+        obj,
+        keys
+      ) {
+
+        if (!obj) {
+          return "";
+        }
+
+        for (
+          const key of keys
+        ) {
+
+          if (
+            obj[key] !== undefined &&
+            obj[key] !== null &&
+            text(obj[key])
+          ) {
+
+            return obj[key];
+
+          }
+
+        }
+
+        return "";
+
+      }
+
+
+      function showMessage(
+        message,
+        type
+      ) {
+
+        const box =
+          document.getElementById(
+            "message"
+          );
+
+
+        box.textContent =
+          text(message);
+
+
+        box.className =
+          "message show " +
+          (
+            type === "success"
+              ? "success"
+              : "error"
+          );
+
+      }
+
+
+      function setLoading(
+        loading
+      ) {
+
+        const button =
+          document.getElementById(
+            "registerButton"
+          );
+
+
+        button.disabled =
+          loading;
+
+
+        button.textContent =
+          loading
+            ? "Creating Account..."
+            : "Create Business Account";
+
+      }
+
+
+      async function loadOptions() {
+
+        try {
+
+          if (
+            !App.api ||
+            typeof App.api.getInitialDataFast !==
+              "function"
+          ) {
+            return;
+          }
+
+
+          const response =
+            await App.api
+              .getInitialDataFast();
+
+
+          if (
+            !response ||
+            !response.success
+          ) {
+            return;
+          }
+
+
+          const data =
+            response.data ||
+            {};
+
+
+          const categories =
+            Array.isArray(
+              data.categories
+            )
+              ? data.categories
+              : [];
+
+
+          const districts =
+            Array.isArray(
+              data.districts
+            )
+              ? data.districts
+              : [];
+
+
+          const categorySelect =
+            document.getElementById(
+              "category"
+            );
+
+
+          const districtSelect =
+            document.getElementById(
+              "district"
+            );
+
+
+          const usedCategories =
+            new Set();
+
+
+          categories.forEach(
+            category => {
+
+              const id =
+                get(
+                  category,
+                  [
+                    "CategoryID",
+                    "CategoryId",
+                    "categoryId",
+                    "ID",
+                    "Id"
+                  ]
+                );
+
+
+              const name =
+                get(
+                  category,
+                  [
+                    "CategoryName",
+                    "Name",
+                    "Category"
+                  ]
+                );
+
+
+              if (
+                !name ||
+                usedCategories.has(
+                  text(id || name)
+                    .toLowerCase()
+                )
+              ) {
+                return;
+              }
+
+
+              usedCategories.add(
+                text(id || name)
+                  .toLowerCase()
+              );
+
+
+              const option =
+                document.createElement(
+                  "option"
+                );
+
+
+              option.value =
+                text(id || name);
+
+              option.textContent =
+                name;
+
+
+              categorySelect.appendChild(
+                option
+              );
+
+            }
+          );
+
+
+          const usedDistricts =
+            new Set();
+
+
+          districts.forEach(
+            district => {
+
+              const id =
+                get(
+                  district,
+                  [
+                    "DistrictID",
+                    "DistrictId",
+                    "districtId",
+                    "ID",
+                    "Id"
+                  ]
+                );
+
+
+              const name =
+                get(
+                  district,
+                  [
+                    "DistrictName",
+                    "Name",
+                    "District"
+                  ]
+                );
+
+
+              if (
+                !name ||
+                usedDistricts.has(
+                  text(id || name)
+                    .toLowerCase()
+                )
+              ) {
+                return;
+              }
+
+
+              usedDistricts.add(
+                text(id || name)
+                  .toLowerCase()
+              );
+
+
+              const option =
+                document.createElement(
+                  "option"
+                );
+
+
+              option.value =
+                text(id || name);
+
+              option.textContent =
+                name;
+
+
+              districtSelect.appendChild(
+                option
+              );
+
+            }
+          );
+
+
+        } catch (error) {
+
+          console.error(
+            "Register options error:",
+            error
+          );
+
+        }
+
+      }
+
+
+      function validateMobile(
+        mobile
+      ) {
+
+        const value =
+          mobile.replace(
+            /\D/g,
+            ""
+          );
+
+
+        return (
+          value.length >= 10 &&
+          value.length <= 15
+        );
+
+      }
+
+
+      async function registerBusiness(
+        payload
+      ) {
+
+        if (
+          !App.api ||
+          typeof App.api.call !==
+            "function"
+        ) {
+
+          throw new Error(
+            "API is not available."
+          );
+
+        }
+
+
+        return await App.api.call(
+          "businessregister",
+          payload,
+          {
+            retries: 1
+          }
+        );
+
+      }
+
+
+      document
+        .getElementById(
+          "registerForm"
+        )
+        .addEventListener(
+          "submit",
+          async function (event) {
+
+            event.preventDefault();
+
+
+            const businessName =
+              text(
+                document.getElementById(
+                  "businessName"
+                ).value
+              );
+
+
+            const ownerName =
+              text(
+                document.getElementById(
+                  "ownerName"
+                ).value
+              );
+
+
+            const mobile =
+              text(
+                document.getElementById(
+                  "mobile"
+                ).value
+              );
+
+
+            const email =
+              text(
+                document.getElementById(
+                  "email"
+                ).value
+              );
+
+
+            const category =
+              text(
+                document.getElementById(
+                  "category"
+                ).value
+              );
+
+
+            const district =
+              text(
+                document.getElementById(
+                  "district"
+                ).value
+              );
+
+
+            const area =
+              text(
+                document.getElementById(
+                  "area"
+                ).value
+              );
+
+
+            const pincode =
+              text(
+                document.getElementById(
+                  "pincode"
+                ).value
+              );
+
+
+            const address =
+              text(
+                document.getElementById(
+                  "address"
+                ).value
+              );
+
+
+            const password =
+              document.getElementById(
+                "password"
+              ).value;
+
+
+            const confirmPassword =
+              document.getElementById(
+                "confirmPassword"
+              ).value;
+
+
+            const description =
+              text(
+                document.getElementById(
+                  "description"
+                ).value
+              );
+
+
+            const terms =
+              document.getElementById(
+                "terms"
+              ).checked;
+
+
+            if (!businessName) {
+
+              showMessage(
+                "Please enter your business name."
+              );
+
+              return;
+
+            }
+
+
+            if (
+              !validateMobile(
+                mobile
+              )
+            ) {
+
+              showMessage(
+                "Please enter a valid mobile number."
+              );
+
+              return;
+
+            }
+
+
+            if (!category) {
+
+              showMessage(
+                "Please select a business category."
+              );
+
+              return;
+
+            }
+
+
+            if (!district) {
+
+              showMessage(
+                "Please select your district."
+              );
+
+              return;
+
+            }
+
+
+            if (
+              password.length < 6
+            ) {
+
+              showMessage(
+                "Password must contain at least 6 characters."
+              );
+
+              return;
+
+            }
+
+
+            if (
+              password !==
+              confirmPassword
+            ) {
+
+              showMessage(
+                "Passwords do not match."
+              );
+
+              return;
+
+            }
+
+
+            if (!terms) {
+
+              showMessage(
+                "Please accept the Terms & Conditions."
+              );
+
+              return;
+
+            }
+
+
+            setLoading(
+              true
+            );
+
+
+            try {
+
+              const response =
+                await registerBusiness(
+                  {
+                    businessName:
+                      businessName,
+
+                    ownerName:
+                      ownerName,
+
+                    mobile:
+                      mobile,
+
+                    email:
+                      email,
+
+                    category:
+                      category,
+
+                    district:
+                      district,
+
+                    area:
+                      area,
+
+                    pincode:
+                      pincode,
+
+                    address:
+                      address,
+
+                    password:
+                      password,
+
+                    description:
+                      description
+                  }
+                );
+
+
+              if (
+                !response ||
+                !response.success
+              ) {
+
+                throw new Error(
+                  response &&
+                  response.message
+                    ? response.message
+                    : "Business registration failed."
+                );
+
+              }
+
+
+              showMessage(
+                response.message ||
+                "Business registration submitted successfully.",
+                "success"
+              );
+
+
+              document
+                .getElementById(
+                  "registerForm"
+                )
+                .reset();
+
+
+              setTimeout(
+                function () {
+
+                  location.href =
+                    "business-login.html";
+
+                },
+                1800
+              );
+
+
+            } catch (error) {
+
+              console.error(
+                "Business registration error:",
+                error
+              );
+
+
+              showMessage(
+                error.message ||
+                "Unable to register your business."
+              );
+
+            } finally {
+
+              setLoading(
+                false
+              );
+
+            }
+
+          }
+        );
+
+
+      document.addEventListener(
+        "DOMContentLoaded",
+        loadOptions
+      );
+
+    })();
+
+  </script>
+
+</body>
+
+</html>

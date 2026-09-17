@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1.0"
+  >
+
+  <meta
+    name="theme-color"
+    content="#0f172a"
+  >
+
+  <title>Business Enquiries | UBnux</title>
+
+  <link
+    rel="stylesheet"
+    href="assets/css/style.css"
+  >
+
+  <style>
+
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      background:#f8fafc;
+      color:#0f172a;
+      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+
+    button,
+    input,
+    select{
+      font:inherit;
+    }
+
+    .layout{
+      min-height:100vh;
+      display:flex;
+    }
+
+    .sidebar{
+      width:260px;
+      background:#0f172a;
+      color:#fff;
+      position:fixed;
+      inset:0 auto 0 0;
+      z-index:100;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .brand{
+      padding:24px 22px;
+      border-bottom:1px solid rgba(255,255,255,.1);
+    }
+
+    .brand-title{
+      font-size:24px;
+      font-weight:800;
+    }
+
+    .brand-subtitle{
+      font-size:12px;
+      color:#94a3b8;
+      margin-top:4px;
+    }
+
+    .business-mini{
+      padding:20px 18px;
+      border-bottom:1px solid rgba(255,255,255,.1);
+      font-weight:700;
+    }
+
+    .nav{
+      flex:1;
+      padding:16px 12px;
+    }
+
+    .nav a{
+      display:block;
+      padding:12px 14px;
+      color:#cbd5e1;
+      border-radius:10px;
+      margin-bottom:5px;
+      font-size:14px;
+    }
+
+    .nav a:hover,
+    .nav a.active{
+      background:#1e293b;
+      color:#fff;
+    }
+
+    .logout{
+      margin:12px;
+      border:0;
+      background:#1e293b;
+      color:#fff;
+      border-radius:10px;
+      padding:11px;
+      cursor:pointer;
+    }
+
+    .main{
+      margin-left:260px;
+      width:calc(100% - 260px);
+    }
+
+    .topbar{
+      height:72px;
+      background:#fff;
+      border-bottom:1px solid #e2e8f0;
+      padding:0 30px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      position:sticky;
+      top:0;
+      z-index:50;
+    }
+
+    .title{
+      font-size:21px;
+      font-weight:750;
+    }
+
+    .mobile-menu{
+      display:none;
+      border:0;
+      background:#f1f5f9;
+      padding:9px;
+      border-radius:8px;
+    }
+
+    .content{
+      padding:30px;
+      max-width:1400px;
+      margin:auto;
+    }
+
+    .heading{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap:15px;
+      margin-bottom:22px;
+    }
+
+    .heading h1{
+      margin:0;
+      font-size:28px;
+    }
+
+    .heading p{
+      margin:7px 0 0;
+      color:#64748b;
+    }
+
+    .filters{
+      display:flex;
+      gap:10px;
+      margin-bottom:18px;
+    }
+
+    .search{
+      flex:1;
+    }
+
+    .filters input,
+    .filters select{
+      border:1px solid #dbe3ee;
+      background:#fff;
+      border-radius:9px;
+      padding:10px 12px;
+      outline:none;
+    }
+
+    .table-panel{
+      background:#fff;
+      border:1px solid #e2e8f0;
+      border-radius:16px;
+      overflow:hidden;
+      box-shadow:0 4px 15px rgba(15,23,42,.04);
+    }
+
+    .table-wrap{
+      overflow-x:auto;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:850px;
+    }
+
+    th{
+      background:#f8fafc;
+      color:#475569;
+      font-size:12px;
+      text-align:left;
+      padding:13px 16px;
+      border-bottom:1px solid #e2e8f0;
+      white-space:nowrap;
+    }
+
+    td{
+      padding:15px 16px;
+      border-bottom:1px solid #eef2f7;
+      font-size:13px;
+      vertical-align:top;
+    }
+
+    tbody tr:last-child td{
+      border-bottom:0;
+    }
+
+    .customer-name{
+      font-weight:700;
+    }
+
+    .customer-message{
+      margin-top:4px;
+      color:#64748b;
+      max-width:330px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .status{
+      border:0;
+      border-radius:999px;
+      padding:7px 10px;
+      font-size:11px;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .pending{
+      background:#fef3c7;
+      color:#92400e;
+    }
+
+    .contacted{
+      background:#dbeafe;
+      color:#1d4ed8;
+    }
+
+    .completed{
+      background:#dcfce7;
+      color:#166534;
+    }
+
+    .rejected{
+      background:#fee2e2;
+      color:#b91c1c;
+    }
+
+    .action-link{
+      border:0;
+      background:#eff6ff;
+      color:#1d4ed8;
+      padding:7px 10px;
+      border-radius:8px;
+      cursor:pointer;
+      font-size:12px;
+    }
+
+    .empty{
+      padding:45px 20px;
+      text-align:center;
+      color:#94a3b8;
+      font-size:13px;
+    }
+
+    .loading{
+      opacity:.6;
+      pointer-events:none;
+    }
+
+    @media(max-width:760px){
+
+      .sidebar{
+        transform:translateX(-100%);
+        transition:.25s;
+      }
+
+      .sidebar.open{
+        transform:translateX(0);
+      }
+
+      .main{
+        margin-left:0;
+        width:100%;
+      }
+
+      .mobile-menu{
+        display:block;
+      }
+
+      .topbar{
+        padding:0 16px;
+      }
+
+      .content{
+        padding:20px 15px;
+      }
+
+      .heading{
+        align-items:flex-start;
+      }
+
+      .filters{
+        flex-direction:column;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+<div class="layout">
+
+  <aside
+    class="sidebar"
+    id="sidebar"
+  >
+
+    <div class="brand">
+      <div class="brand-title">UBnux</div>
+      <div class="brand-subtitle">
+        Business Management
+      </div>
+    </div>
+
+    <div
+      class="business-mini"
+      id="sidebarBusinessName"
+    >
+      Business
+    </div>
+
+    <nav class="nav">
+
+      <a href="business-dashboard.html">
+        📊 Dashboard
+      </a>
+
+      <a href="business-profile.html">
+        🏪 Business Profile
+      </a>
+
+      <a
+        href="business-enquiries.html"
+        class="active"
+      >
+        💬 Enquiries
+      </a>
+
+      <a href="business-services.html">
+        🛍️ Products & Services
+      </a>
+
+      <a href="business-settings.html">
+        ⚙️ Settings
+      </a>
+
+    </nav>
+
+    <button
+      class="logout"
+      id="logoutButton"
+    >
+      Logout
+    </button>
+
+  </aside>
+
+
+  <main class="main">
+
+    <header class="topbar">
+
+      <div style="display:flex;align-items:center;gap:12px">
+
+        <button
+          class="mobile-menu"
+          id="mobileMenuButton"
+        >
+          ☰
+        </button>
+
+        <div class="title">
+          Enquiries
+        </div>
+
+      </div>
+
+    </header>
+
+
+    <section class="content">
+
+      <div class="heading">
+
+        <div>
+
+          <h1>
+            Customer Enquiries
+          </h1>
+
+          <p>
+            View and manage enquiries received through UBnux.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="filters">
+
+        <input
+          class="search"
+          id="searchInput"
+          type="search"
+          placeholder="Search customer, mobile or message..."
+        >
+
+        <select id="statusFilter">
+
+          <option value="">
+            All Status
+          </option>
+
+          <option value="Pending">
+            Pending
+          </option>
+
+          <option value="Contacted">
+            Contacted
+          </option>
+
+          <option value="Completed">
+            Completed
+          </option>
+
+          <option value="Rejected">
+            Rejected
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <section class="table-panel">
+
+        <div
+          class="table-wrap"
+          id="tableWrap"
+        >
+
+          <table>
+
+            <thead>
+
+              <tr>
+
+                <th>
+                  Customer
+                </th>
+
+                <th>
+                  Mobile
+                </th>
+
+                <th>
+                  Message
+                </th>
+
+                <th>
+                  Date
+                </th>
+
+                <th>
+                  Status
+                </th>
+
+                <th>
+                  Action
+                </th>
+
+              </tr>
+
+            </thead>
+
+            <tbody id="enquiryBody">
+
+              <tr>
+                <td colspan="6">
+                  <div class="empty">
+                    Loading enquiries...
+                  </div>
+                </td>
+              </tr>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </section>
+
+    </section>
+
+  </main>
+
+</div>
+
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/state.js"></script>
+<script src="assets/js/cache.js"></script>
+<script src="assets/js/api.js"></script>
+<script src="assets/js/utils.js"></script>
+
+
+<script>
+
+"use strict";
+
+
+const ENQUIRIES_ACTION =
+  "getbusinessenquiries";
+
+const UPDATE_STATUS_ACTION =
+  "updatebusinessenquirystatus";
+
+
+let allEnquiries = [];
+
+
+function getAuth(){
+
+  try{
+
+    const raw =
+      localStorage.getItem(
+        "ubnux_business_auth"
+      ) ||
+      sessionStorage.getItem(
+        "ubnux_business_auth"
+      ) ||
+      localStorage.getItem(
+        "zilaBiz_business_auth"
+      );
+
+    return raw
+      ? JSON.parse(raw)
+      : null;
+
+  }catch(error){
+
+    return null;
+
+  }
+
+}
+
+
+function getBusinessId(){
+
+  const auth =
+    getAuth();
+
+  const business =
+    auth?.business ||
+    auth?.user ||
+    auth?.data ||
+    auth ||
+    {};
+
+  return (
+    business.businessId ||
+    business.BusinessID ||
+    business.id ||
+    business.ID ||
+    auth?.businessId ||
+    auth?.BusinessID ||
+    auth?.userId ||
+    auth?.UserID ||
+    ""
+  );
+
+}
+
+
+function read(
+  obj,
+  keys,
+  fallback=""
+){
+
+  if(!obj){
+    return fallback;
+  }
+
+  for(
+    const key of keys
+  ){
+
+    if(
+      obj[key] !== undefined &&
+      obj[key] !== null &&
+      String(obj[key]).trim() !== ""
+    ){
+
+      return obj[key];
+
+    }
+
+  }
+
+  return fallback;
+
+}
+
+
+function escapeHTML(value){
+
+  return String(
+    value ?? ""
+  )
+  .replace(/&/g,"&amp;")
+  .replace(/</g,"&lt;")
+  .replace(/>/g,"&gt;")
+  .replace(/"/g,"&quot;")
+  .replace(/'/g,"&#039;");
+
+}
+
+
+function statusClass(
+  status
+){
+
+  const value =
+    String(
+      status || ""
+    ).toLowerCase();
+
+  if(
+    value.includes("complete")
+  ){
+    return "completed";
+  }
+
+  if(
+    value.includes("contact")
+  ){
+    return "contacted";
+  }
+
+  if(
+    value.includes("reject")
+  ){
+    return "rejected";
+  }
+
+  return "pending";
+
+}
+
+
+function formatDate(
+  value
+){
+
+  if(!value){
+    return "—";
+  }
+
+  const date =
+    new Date(value);
+
+  if(
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+
+    return String(value);
+
+  }
+
+  return date.toLocaleDateString(
+    "en-IN",
+    {
+      day:"2-digit",
+      month:"short",
+      year:"numeric"
+    }
+  );
+
+}
+
+
+function renderEnquiries(){
+
+  const body =
+    document.getElementById(
+      "enquiryBody"
+    );
+
+  const search =
+    document.getElementById(
+      "searchInput"
+    ).value
+      .trim()
+      .toLowerCase();
+
+  const status =
+    document.getElementById(
+      "statusFilter"
+    ).value
+      .trim()
+      .toLowerCase();
+
+
+  const filtered =
+    allEnquiries.filter(
+      item => {
+
+        const name =
+          String(
+            read(
+              item,
+              [
+                "Name",
+                "name",
+                "CustomerName",
+                "customerName"
+              ]
+            )
+          ).toLowerCase();
+
+        const mobile =
+          String(
+            read(
+              item,
+              [
+                "Mobile",
+                "mobile",
+                "Phone",
+                "phone"
+              ]
+            )
+          ).toLowerCase();
+
+        const message =
+          String(
+            read(
+              item,
+              [
+                "Message",
+                "message",
+                "EnquiryMessage",
+                "enquiryMessage"
+              ]
+            )
+          ).toLowerCase();
+
+        const itemStatus =
+          String(
+            read(
+              item,
+              [
+                "Status",
+                "status",
+                "EnquiryStatus",
+                "enquiryStatus"
+              ],
+              "Pending"
+            )
+          ).toLowerCase();
+
+        const searchMatch =
+          !search ||
+          name.includes(search) ||
+          mobile.includes(search) ||
+          message.includes(search);
+
+        const statusMatch =
+          !status ||
+          itemStatus === status;
+
+        return (
+          searchMatch &&
+          statusMatch
+        );
+
+      }
+    );
+
+
+  if(filtered.length === 0){
+
+    body.innerHTML =
+      `
+      <tr>
+        <td colspan="6">
+          <div class="empty">
+            No enquiries found.
+          </div>
+        </td>
+      </tr>
+      `;
+
+    return;
+
+  }
+
+
+  body.innerHTML =
+    filtered
+      .map(
+        (item,index) => {
+
+          const name =
+            read(
+              item,
+              [
+                "Name",
+                "name",
+                "CustomerName",
+                "customerName"
+              ],
+              "Customer"
+            );
+
+          const mobile =
+            read(
+              item,
+              [
+                "Mobile",
+                "mobile",
+                "Phone",
+                "phone"
+              ],
+              "—"
+            );
+
+          const message =
+            read(
+              item,
+              [
+                "Message",
+                "message",
+                "EnquiryMessage",
+                "enquiryMessage"
+              ],
+              "—"
+            );
+
+          const date =
+            read(
+              item,
+              [
+                "Date",
+                "date",
+                "CreatedAt",
+                "createdAt",
+                "EnquiryDate",
+                "enquiryDate"
+              ],
+              ""
+            );
+
+          const currentStatus =
+            read(
+              item,
+              [
+                "Status",
+                "status",
+                "EnquiryStatus",
+                "enquiryStatus"
+              ],
+              "Pending"
+            );
+
+          return `
+            <tr>
+
+              <td>
+
+                <div class="customer-name">
+                  ${escapeHTML(name)}
+                </div>
+
+              </td>
+
+              <td>
+                ${escapeHTML(mobile)}
+              </td>
+
+              <td>
+
+                <div class="customer-message">
+                  ${escapeHTML(message)}
+                </div>
+
+              </td>
+
+              <td>
+                ${escapeHTML(formatDate(date))}
+              </td>
+
+              <td>
+
+                <select
+                  class="status ${statusClass(currentStatus)}"
+                  onchange="changeStatus(${index}, this.value)"
+                >
+
+                  <option
+                    value="Pending"
+                    ${currentStatus.toLowerCase()==="pending"?"selected":""}
+                  >
+                    Pending
+                  </option>
+
+                  <option
+                    value="Contacted"
+                    ${currentStatus.toLowerCase()==="contacted"?"selected":""}
+                  >
+                    Contacted
+                  </option>
+
+                  <option
+                    value="Completed"
+                    ${currentStatus.toLowerCase()==="completed"?"selected":""}
+                  >
+                    Completed
+                  </option>
+
+                  <option
+                    value="Rejected"
+                    ${currentStatus.toLowerCase()==="rejected"?"selected":""}
+                  >
+                    Rejected
+                  </option>
+
+                </select>
+
+              </td>
+
+              <td>
+
+                ${
+                  mobile !== "—"
+                    ? `
+                      <button
+                        class="action-link"
+                        onclick="callCustomer('${String(mobile).replace(/'/g,"\\'")}')"
+                      >
+                        Call
+                      </button>
+                    `
+                    : ""
+                }
+
+              </td>
+
+            </tr>
+          `;
+
+        }
+      )
+      .join("");
+
+}
+
+
+function callCustomer(
+  mobile
+){
+
+  const clean =
+    String(mobile)
+      .replace(/[^\d+]/g,"");
+
+  if(clean){
+
+    location.href =
+      "tel:" + clean;
+
+  }
+
+}
+
+
+async function changeStatus(
+  visibleIndex,
+  newStatus
+){
+
+  const search =
+    document.getElementById(
+      "searchInput"
+    ).value
+      .trim()
+      .toLowerCase();
+
+  const status =
+    document.getElementById(
+      "statusFilter"
+    ).value
+      .trim()
+      .toLowerCase();
+
+
+  const filtered =
+    allEnquiries.filter(
+      item => {
+
+        const name =
+          String(
+            read(
+              item,
+              [
+                "Name",
+                "name",
+                "CustomerName",
+                "customerName"
+              ]
+            )
+          ).toLowerCase();
+
+        const mobile =
+          String(
+            read(
+              item,
+              [
+                "Mobile",
+                "mobile",
+                "Phone",
+                "phone"
+              ]
+            )
+          ).toLowerCase();
+
+        const message =
+          String(
+            read(
+              item,
+              [
+                "Message",
+                "message",
+                "EnquiryMessage",
+                "enquiryMessage"
+              ]
+            )
+          ).toLowerCase();
+
+        const itemStatus =
+          String(
+            read(
+              item,
+              [
+                "Status",
+                "status",
+                "EnquiryStatus",
+                "enquiryStatus"
+              ],
+              "Pending"
+            )
+          ).toLowerCase();
+
+        return (
+          (!search ||
+            name.includes(search) ||
+            mobile.includes(search) ||
+            message.includes(search)
+          ) &&
+          (!status ||
+            itemStatus === status
+          )
+        );
+
+      }
+    );
+
+
+  const item =
+    filtered[visibleIndex];
+
+  if(!item){
+    return;
+  }
+
+
+  const enquiryId =
+    read(
+      item,
+      [
+        "EnquiryID",
+        "enquiryId",
+        "ID",
+        "id"
+      ],
+      ""
+    );
+
+
+  try{
+
+    const response =
+      await App.api.call(
+        UPDATE_STATUS_ACTION,
+        {
+          businessId:
+            getBusinessId(),
+
+          BusinessID:
+            getBusinessId(),
+
+          enquiryId,
+          EnquiryID:
+            enquiryId,
+
+          status:newStatus,
+          Status:newStatus
+        },
+        {
+          retries:1
+        }
+      );
+
+    if(
+      !response ||
+      response.success === false
+    ){
+
+      throw new Error(
+        response?.message ||
+        "Status update failed."
+      );
+
+    }
+
+    if(enquiryId){
+
+      const original =
+        allEnquiries.find(
+          x =>
+            String(
+              read(
+                x,
+                [
+                  "EnquiryID",
+                  "enquiryId",
+                  "ID",
+                  "id"
+                ]
+              )
+            ) ===
+            String(enquiryId)
+        );
+
+      if(original){
+
+        original.Status =
+          newStatus;
+
+        original.status =
+          newStatus;
+
+        original.EnquiryStatus =
+          newStatus;
+
+        original.enquiryStatus =
+          newStatus;
+
+      }
+
+    }
+
+    renderEnquiries();
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+    alert(
+      error.message ||
+      "Unable to update enquiry status."
+    );
+
+    renderEnquiries();
+
+  }
+
+}
+
+
+async function loadEnquiries(){
+
+  const businessId =
+    getBusinessId();
+
+  if(!businessId){
+
+    location.href =
+      "business-login.html";
+
+    return;
+
+  }
+
+
+  try{
+
+    const response =
+      await App.api.call(
+        ENQUIRIES_ACTION,
+        {
+          businessId,
+          BusinessID:businessId
+        },
+        {
+          retries:1
+        }
+      );
+
+
+    if(
+      !response ||
+      response.success === false
+    ){
+
+      throw new Error(
+        response?.message ||
+        "Enquiries could not be loaded."
+      );
+
+    }
+
+
+    const data =
+      response.data ||
+      response;
+
+
+    allEnquiries =
+      data.enquiries ||
+      data.items ||
+      data.data ||
+      [];
+
+
+    if(
+      !Array.isArray(
+        allEnquiries
+      )
+    ){
+
+      allEnquiries = [];
+
+    }
+
+
+    renderEnquiries();
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+    document.getElementById(
+      "enquiryBody"
+    ).innerHTML =
+      `
+      <tr>
+        <td colspan="6">
+          <div class="empty">
+            Unable to load enquiries.
+            <br><br>
+            <button
+              onclick="loadEnquiries()"
+              style="border:1px solid #cbd5e1;background:#fff;border-radius:8px;padding:8px 12px;cursor:pointer"
+            >
+              Retry
+            </button>
+          </div>
+        </td>
+      </tr>
+      `;
+
+  }
+
+}
+
+
+function logout(){
+
+  localStorage.removeItem(
+    "ubnux_business_auth"
+  );
+
+  localStorage.removeItem(
+    "zilaBiz_business_auth"
+  );
+
+  sessionStorage.removeItem(
+    "ubnux_business_auth"
+  );
+
+  location.href =
+    "business-login.html";
+
+}
+
+
+function setBusinessName(){
+
+  const auth =
+    getAuth();
+
+  const business =
+    auth?.business ||
+    auth?.user ||
+    auth?.data ||
+    auth ||
+    {};
+
+  document.getElementById(
+    "sidebarBusinessName"
+  ).textContent =
+    read(
+      business,
+      [
+        "BusinessName",
+        "businessName",
+        "Name",
+        "name"
+      ],
+      "Business"
+    );
+
+}
+
+
+document
+  .getElementById(
+    "searchInput"
+  )
+  .addEventListener(
+    "input",
+    renderEnquiries
+  );
+
+
+document
+  .getElementById(
+    "statusFilter"
+  )
+  .addEventListener(
+    "change",
+    renderEnquiries
+  );
+
+
+document
+  .getElementById(
+    "logoutButton"
+  )
+  .addEventListener(
+    "click",
+    logout
+  );
+
+
+document
+  .getElementById(
+    "mobileMenuButton"
+  )
+  .addEventListener(
+    "click",
+    () => {
+
+      document
+        .getElementById(
+          "sidebar"
+        )
+        .classList.toggle(
+          "open"
+        );
+
+    }
+  );
+
+
+setBusinessName();
+
+loadEnquiries();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Page Not Found | UBnux</title>
+
+  <meta
+    name="robots"
+    content="noindex,nofollow"
+  >
+
+  <link
+    rel="stylesheet"
+    href="assets/css/style.css"
+  >
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 25px;
+      background: #f6f7f9;
+      font-family: Arial, sans-serif;
+    }
+
+    .error-page {
+      width: 100%;
+      max-width: 600px;
+      padding: 45px 30px;
+      border: 1px solid #e5e7eb;
+      border-radius: 20px;
+      background: #fff;
+      text-align: center;
+    }
+
+    .error-number {
+      margin: 0;
+      color: #111827;
+      font-size: 90px;
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .error-title {
+      margin: 18px 0 8px;
+      color: #111827;
+      font-size: 27px;
+    }
+
+    .error-text {
+      margin: 0 auto;
+      max-width: 450px;
+      color: #6b7280;
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 25px;
+    }
+
+    .button {
+      min-height: 45px;
+      padding: 0 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 9px;
+      background: #111827;
+      color: #fff;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .button.secondary {
+      border: 1px solid #d9dde3;
+      background: #fff;
+      color: #111827;
+    }
+
+    .search {
+      display: flex;
+      max-width: 450px;
+      margin: 25px auto 0;
+      gap: 8px;
+    }
+
+    .search input {
+      flex: 1;
+      min-height: 45px;
+      padding: 0 12px;
+      border: 1px solid #d9dde3;
+      border-radius: 8px;
+      outline: none;
+      font: inherit;
+    }
+
+    .search button {
+      min-height: 45px;
+      padding: 0 15px;
+      border: 0;
+      border-radius: 8px;
+      background: #111827;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    @media (max-width: 500px) {
+
+      .error-number {
+        font-size: 70px;
+      }
+
+      .error-page {
+        padding: 35px 20px;
+      }
+
+      .search {
+        flex-direction: column;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <main class="error-page">
+
+    <div class="error-number">
+      404
+    </div>
+
+    <h1 class="error-title">
+      Page Not Found
+    </h1>
+
+    <p class="error-text">
+      The page you're looking for doesn't exist,
+      may have been moved, or the URL may be incorrect.
+    </p>
+
+
+    <form
+      id="searchForm"
+      class="search"
+    >
+
+      <input
+        id="searchInput"
+        type="search"
+        placeholder="Search UBnux..."
+      >
+
+      <button
+        type="submit"
+      >
+        Search
+      </button>
+
+    </form>
+
+
+    <div class="actions">
+
+      <a
+        class="button"
+        href="index.html"
+      >
+        Go to Homepage
+      </a>
+
+      <a
+        class="button secondary"
+        href="business-login.html"
+      >
+        Business Login
+      </a>
+
+    </div>
+
+  </main>
+
+
+  <script>
+
+    document
+      .getElementById(
+        "searchForm"
+      )
+      .addEventListener(
+        "submit",
+        function (event) {
+
+          event.preventDefault();
+
+
+          const query =
+            document
+              .getElementById(
+                "searchInput"
+              )
+              .value
+              .trim();
+
+
+          if (!query) {
+
+            location.href =
+              "search.html";
+
+            return;
+
+          }
+
+
+          location.href =
+            "search.html?q=" +
+            encodeURIComponent(
+              query
+            );
+
+        }
+      );
+
+  </script>
+
+</body>
+
+</html>

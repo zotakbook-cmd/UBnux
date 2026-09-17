@@ -1,0 +1,1750 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1.0"
+  >
+
+  <meta
+    name="theme-color"
+    content="#0f172a"
+  >
+
+  <title>Products & Services | UBnux</title>
+
+  <link
+    rel="stylesheet"
+    href="assets/css/style.css"
+  >
+
+  <style>
+
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      background:#f8fafc;
+      color:#0f172a;
+      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+
+    button,
+    input,
+    textarea,
+    select{
+      font:inherit;
+    }
+
+    .layout{
+      min-height:100vh;
+      display:flex;
+    }
+
+    .sidebar{
+      width:260px;
+      background:#0f172a;
+      color:#fff;
+      position:fixed;
+      inset:0 auto 0 0;
+      z-index:100;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .brand{
+      padding:24px 22px;
+      border-bottom:1px solid rgba(255,255,255,.1);
+    }
+
+    .brand-title{
+      font-size:24px;
+      font-weight:800;
+    }
+
+    .brand-subtitle{
+      color:#94a3b8;
+      font-size:12px;
+      margin-top:4px;
+    }
+
+    .business-mini{
+      padding:20px 18px;
+      border-bottom:1px solid rgba(255,255,255,.1);
+      font-weight:700;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .nav{
+      flex:1;
+      padding:16px 12px;
+    }
+
+    .nav a{
+      display:block;
+      color:#cbd5e1;
+      padding:12px 14px;
+      border-radius:10px;
+      margin-bottom:5px;
+      font-size:14px;
+    }
+
+    .nav a.active,
+    .nav a:hover{
+      background:#1e293b;
+      color:#fff;
+    }
+
+    .logout{
+      margin:12px;
+      border:0;
+      background:#1e293b;
+      color:#fff;
+      border-radius:10px;
+      padding:11px;
+      cursor:pointer;
+    }
+
+    .main{
+      margin-left:260px;
+      width:calc(100% - 260px);
+    }
+
+    .topbar{
+      height:72px;
+      background:#fff;
+      border-bottom:1px solid #e2e8f0;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 30px;
+      position:sticky;
+      top:0;
+      z-index:50;
+    }
+
+    .title{
+      font-size:21px;
+      font-weight:750;
+    }
+
+    .mobile-menu{
+      display:none;
+      border:0;
+      background:#f1f5f9;
+      padding:9px;
+      border-radius:8px;
+    }
+
+    .content{
+      padding:30px;
+      max-width:1400px;
+      margin:auto;
+    }
+
+    .heading{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap:15px;
+      margin-bottom:22px;
+    }
+
+    .heading h1{
+      margin:0;
+      font-size:28px;
+    }
+
+    .heading p{
+      margin:7px 0 0;
+      color:#64748b;
+    }
+
+    .add-button{
+      border:0;
+      background:#2563eb;
+      color:#fff;
+      padding:11px 17px;
+      border-radius:9px;
+      cursor:pointer;
+      font-weight:650;
+    }
+
+    .cards{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:17px;
+    }
+
+    .card{
+      background:#fff;
+      border:1px solid #e2e8f0;
+      border-radius:16px;
+      overflow:hidden;
+      box-shadow:0 4px 15px rgba(15,23,42,.04);
+    }
+
+    .card-image{
+      width:100%;
+      height:170px;
+      object-fit:cover;
+      background:#f1f5f9;
+      display:block;
+    }
+
+    .card-body{
+      padding:17px;
+    }
+
+    .card-title{
+      font-size:17px;
+      font-weight:750;
+    }
+
+    .card-price{
+      margin-top:7px;
+      font-weight:700;
+      color:#2563eb;
+    }
+
+    .card-description{
+      margin-top:8px;
+      color:#64748b;
+      font-size:13px;
+      line-height:1.5;
+      min-height:40px;
+    }
+
+    .card-actions{
+      margin-top:15px;
+      display:flex;
+      gap:8px;
+    }
+
+    .small-btn{
+      flex:1;
+      border:1px solid #dbe3ee;
+      background:#fff;
+      border-radius:8px;
+      padding:8px;
+      cursor:pointer;
+      font-size:12px;
+    }
+
+    .small-btn.delete{
+      color:#b91c1c;
+      background:#fff5f5;
+      border-color:#fecaca;
+    }
+
+    .empty{
+      grid-column:1/-1;
+      padding:55px 20px;
+      text-align:center;
+      color:#94a3b8;
+      background:#fff;
+      border:1px solid #e2e8f0;
+      border-radius:16px;
+    }
+
+    .modal{
+      position:fixed;
+      inset:0;
+      background:rgba(15,23,42,.55);
+      z-index:500;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+
+    .modal.open{
+      display:flex;
+    }
+
+    .modal-box{
+      width:min(620px,100%);
+      background:#fff;
+      border-radius:16px;
+      overflow:hidden;
+      max-height:90vh;
+      overflow-y:auto;
+    }
+
+    .modal-header{
+      padding:18px 20px;
+      border-bottom:1px solid #e2e8f0;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    .modal-title{
+      font-weight:750;
+    }
+
+    .close{
+      border:0;
+      background:#f1f5f9;
+      width:34px;
+      height:34px;
+      border-radius:8px;
+      cursor:pointer;
+    }
+
+    .modal-body{
+      padding:20px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:15px;
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:7px;
+    }
+
+    .field.full{
+      grid-column:1/-1;
+    }
+
+    label{
+      font-size:13px;
+      font-weight:650;
+      color:#334155;
+    }
+
+    input,
+    textarea,
+    select{
+      width:100%;
+      border:1px solid #dbe3ee;
+      border-radius:9px;
+      padding:11px 12px;
+      outline:none;
+    }
+
+    textarea{
+      min-height:100px;
+      resize:vertical;
+    }
+
+    .modal-actions{
+      margin-top:20px;
+      display:flex;
+      justify-content:flex-end;
+      gap:9px;
+    }
+
+    .btn{
+      border:0;
+      border-radius:9px;
+      padding:10px 16px;
+      cursor:pointer;
+      font-weight:650;
+    }
+
+    .primary{
+      background:#2563eb;
+      color:#fff;
+    }
+
+    .secondary{
+      background:#f1f5f9;
+      color:#334155;
+    }
+
+    .loading{
+      opacity:.6;
+      pointer-events:none;
+    }
+
+    @media(max-width:1050px){
+
+      .cards{
+        grid-template-columns:repeat(2,1fr);
+      }
+
+    }
+
+    @media(max-width:760px){
+
+      .sidebar{
+        transform:translateX(-100%);
+        transition:.25s;
+      }
+
+      .sidebar.open{
+        transform:translateX(0);
+      }
+
+      .main{
+        margin-left:0;
+        width:100%;
+      }
+
+      .mobile-menu{
+        display:block;
+      }
+
+      .topbar{
+        padding:0 16px;
+      }
+
+      .content{
+        padding:20px 15px;
+      }
+
+      .heading{
+        align-items:flex-start;
+      }
+
+      .heading .add-button{
+        white-space:nowrap;
+      }
+
+      .cards{
+        grid-template-columns:1fr;
+      }
+
+      .grid{
+        grid-template-columns:1fr;
+      }
+
+      .field.full{
+        grid-column:auto;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+<div class="layout">
+
+  <aside
+    class="sidebar"
+    id="sidebar"
+  >
+
+    <div class="brand">
+      <div class="brand-title">UBnux</div>
+      <div class="brand-subtitle">
+        Business Management
+      </div>
+    </div>
+
+    <div
+      class="business-mini"
+      id="sidebarBusinessName"
+    >
+      Business
+    </div>
+
+    <nav class="nav">
+
+      <a href="business-dashboard.html">
+        📊 Dashboard
+      </a>
+
+      <a href="business-profile.html">
+        🏪 Business Profile
+      </a>
+
+      <a href="business-enquiries.html">
+        💬 Enquiries
+      </a>
+
+      <a
+        href="business-services.html"
+        class="active"
+      >
+        🛍️ Products & Services
+      </a>
+
+      <a href="business-settings.html">
+        ⚙️ Settings
+      </a>
+
+    </nav>
+
+    <button
+      class="logout"
+      id="logoutButton"
+    >
+      Logout
+    </button>
+
+  </aside>
+
+
+  <main class="main">
+
+    <header class="topbar">
+
+      <div style="display:flex;align-items:center;gap:12px">
+
+        <button
+          class="mobile-menu"
+          id="mobileMenuButton"
+        >
+          ☰
+        </button>
+
+        <div class="title">
+          Products & Services
+        </div>
+
+      </div>
+
+    </header>
+
+
+    <section class="content">
+
+      <div class="heading">
+
+        <div>
+
+          <h1>
+            Products & Services
+          </h1>
+
+          <p>
+            Add and manage the products or services shown on your UBnux listing.
+          </p>
+
+        </div>
+
+        <button
+          class="add-button"
+          id="addButton"
+        >
+          + Add New
+        </button>
+
+      </div>
+
+
+      <div
+        class="cards"
+        id="serviceCards"
+      >
+
+        <div class="empty">
+          Loading products and services...
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+</div>
+
+
+<div
+  class="modal"
+  id="serviceModal"
+>
+
+  <div class="modal-box">
+
+    <div class="modal-header">
+
+      <div
+        class="modal-title"
+        id="modalTitle"
+      >
+        Add Product / Service
+      </div>
+
+      <button
+        class="close"
+        id="closeModal"
+      >
+        ✕
+      </button>
+
+    </div>
+
+
+    <div class="modal-body">
+
+      <form id="serviceForm">
+
+        <input
+          type="hidden"
+          id="serviceId"
+        >
+
+        <div class="grid">
+
+          <div class="field full">
+
+            <label>
+              Name *
+            </label>
+
+            <input
+              id="serviceName"
+              required
+            >
+
+          </div>
+
+
+          <div class="field">
+
+            <label>
+              Type
+            </label>
+
+            <select id="serviceType">
+
+              <option value="Service">
+                Service
+              </option>
+
+              <option value="Product">
+                Product
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="field">
+
+            <label>
+              Price
+            </label>
+
+            <input
+              id="servicePrice"
+              placeholder="e.g. ₹999"
+            >
+
+          </div>
+
+
+          <div class="field full">
+
+            <label>
+              Image URL
+            </label>
+
+            <input
+              id="serviceImage"
+              type="url"
+              placeholder="https://"
+            >
+
+          </div>
+
+
+          <div class="field full">
+
+            <label>
+              Description
+            </label>
+
+            <textarea
+              id="serviceDescription"
+            ></textarea>
+
+          </div>
+
+
+          <div class="field">
+
+            <label>
+              Status
+            </label>
+
+            <select id="serviceStatus">
+
+              <option value="Active">
+                Active
+              </option>
+
+              <option value="Inactive">
+                Inactive
+              </option>
+
+            </select>
+
+          </div>
+
+        </div>
+
+
+        <div class="modal-actions">
+
+          <button
+            type="button"
+            class="btn secondary"
+            id="cancelModal"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            class="btn primary"
+            id="saveServiceButton"
+          >
+            Save
+
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/state.js"></script>
+<script src="assets/js/cache.js"></script>
+<script src="assets/js/api.js"></script>
+<script src="assets/js/utils.js"></script>
+
+
+<script>
+
+"use strict";
+
+
+const SERVICES_GET_ACTION =
+  "getbusinessservices";
+
+const SERVICES_SAVE_ACTION =
+  "savebusinessservice";
+
+const SERVICES_DELETE_ACTION =
+  "deletebusinessservice";
+
+
+let services = [];
+
+
+function getAuth(){
+
+  try{
+
+    const raw =
+      localStorage.getItem(
+        "ubnux_business_auth"
+      ) ||
+      sessionStorage.getItem(
+        "ubnux_business_auth"
+      ) ||
+      localStorage.getItem(
+        "zilaBiz_business_auth"
+      );
+
+    return raw
+      ? JSON.parse(raw)
+      : null;
+
+  }catch(error){
+
+    return null;
+
+  }
+
+}
+
+
+function getBusinessId(){
+
+  const auth =
+    getAuth();
+
+  const business =
+    auth?.business ||
+    auth?.user ||
+    auth?.data ||
+    auth ||
+    {};
+
+  return (
+    business.businessId ||
+    business.BusinessID ||
+    business.id ||
+    business.ID ||
+    auth?.businessId ||
+    auth?.BusinessID ||
+    auth?.userId ||
+    auth?.UserID ||
+    ""
+  );
+
+}
+
+
+function read(
+  obj,
+  keys,
+  fallback=""
+){
+
+  if(!obj){
+    return fallback;
+  }
+
+  for(
+    const key of keys
+  ){
+
+    if(
+      obj[key] !== undefined &&
+      obj[key] !== null &&
+      String(obj[key]).trim() !== ""
+    ){
+
+      return obj[key];
+
+    }
+
+  }
+
+  return fallback;
+
+}
+
+
+function escapeHTML(value){
+
+  return String(
+    value ?? ""
+  )
+  .replace(/&/g,"&amp;")
+  .replace(/</g,"&lt;")
+  .replace(/>/g,"&gt;")
+  .replace(/"/g,"&quot;")
+  .replace(/'/g,"&#039;");
+
+}
+
+
+function placeholderImage(){
+
+  return "data:image/svg+xml;charset=UTF-8," +
+    encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="800" height="500">
+        <rect width="100%" height="100%" fill="#f1f5f9"/>
+        <text x="50%" y="50%"
+          text-anchor="middle"
+          dominant-baseline="middle"
+          fill="#94a3b8"
+          font-family="Arial"
+          font-size="28">
+          UBnux
+        </text>
+      </svg>
+    `);
+
+}
+
+
+function renderServices(){
+
+  const box =
+    document.getElementById(
+      "serviceCards"
+    );
+
+  if(
+    !Array.isArray(services) ||
+    services.length === 0
+  ){
+
+    box.innerHTML =
+      `
+      <div class="empty">
+        <div style="font-size:35px;margin-bottom:10px">
+          🛍️
+        </div>
+
+        <strong>
+          No products or services yet
+        </strong>
+
+        <div style="margin-top:6px">
+          Add your first product or service.
+        </div>
+      </div>
+      `;
+
+    return;
+
+  }
+
+
+  box.innerHTML =
+    services
+      .map(
+        (item,index) => {
+
+          const id =
+            read(
+              item,
+              [
+                "ServiceID",
+                "serviceId",
+                "ProductID",
+                "productId",
+                "ID",
+                "id"
+              ],
+              String(index)
+            );
+
+          const name =
+            read(
+              item,
+              [
+                "ServiceName",
+                "serviceName",
+                "ProductName",
+                "productName",
+                "Name",
+                "name"
+              ],
+              "Untitled"
+            );
+
+          const type =
+            read(
+              item,
+              [
+                "Type",
+                "type",
+                "ServiceType",
+                "serviceType"
+              ],
+              "Service"
+            );
+
+          const price =
+            read(
+              item,
+              [
+                "Price",
+                "price",
+                "Amount",
+                "amount"
+              ],
+              ""
+            );
+
+          const description =
+            read(
+              item,
+              [
+                "Description",
+                "description"
+              ],
+              ""
+            );
+
+          const image =
+            read(
+              item,
+              [
+                "ImageURL",
+                "imageURL",
+                "Image",
+                "image"
+              ],
+              placeholderImage()
+            );
+
+          return `
+            <article class="card">
+
+              <img
+                class="card-image"
+                src="${escapeHTML(image)}"
+                alt="${escapeHTML(name)}"
+                onerror="this.src='${placeholderImage()}'"
+              >
+
+              <div class="card-body">
+
+                <div
+                  style="font-size:11px;color:#64748b;margin-bottom:5px"
+                >
+                  ${escapeHTML(type)}
+                </div>
+
+                <div class="card-title">
+                  ${escapeHTML(name)}
+                </div>
+
+                ${
+                  price
+                    ? `
+                      <div class="card-price">
+                        ${escapeHTML(price)}
+                      </div>
+                    `
+                    : ""
+                }
+
+                <div class="card-description">
+                  ${escapeHTML(description)}
+                </div>
+
+                <div class="card-actions">
+
+                  <button
+                    class="small-btn"
+                    onclick="editService('${String(id).replace(/'/g,"\\'")}')"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    class="small-btn delete"
+                    onclick="deleteService('${String(id).replace(/'/g,"\\'")}')"
+                  >
+                    Delete
+                  </button>
+
+                </div>
+
+              </div>
+
+            </article>
+          `;
+
+        }
+      )
+      .join("");
+
+}
+
+
+function openModal(
+  item=null
+){
+
+  const modal =
+    document.getElementById(
+      "serviceModal"
+    );
+
+  document.getElementById(
+    "serviceForm"
+  ).reset();
+
+  document.getElementById(
+    "serviceId"
+  ).value =
+    "";
+
+  document.getElementById(
+    "modalTitle"
+  ).textContent =
+    item
+      ? "Edit Product / Service"
+      : "Add Product / Service";
+
+
+  if(item){
+
+    document.getElementById(
+      "serviceId"
+    ).value =
+      read(
+        item,
+        [
+          "ServiceID",
+          "serviceId",
+          "ProductID",
+          "productId",
+          "ID",
+          "id"
+        ]
+      );
+
+    document.getElementById(
+      "serviceName"
+    ).value =
+      read(
+        item,
+        [
+          "ServiceName",
+          "serviceName",
+          "ProductName",
+          "productName",
+          "Name",
+          "name"
+        ]
+      );
+
+    document.getElementById(
+      "serviceType"
+    ).value =
+      read(
+        item,
+        [
+          "Type",
+          "type",
+          "ServiceType",
+          "serviceType"
+        ],
+        "Service"
+      );
+
+    document.getElementById(
+      "servicePrice"
+    ).value =
+      read(
+        item,
+        [
+          "Price",
+          "price",
+          "Amount",
+          "amount"
+        ]
+      );
+
+    document.getElementById(
+      "serviceImage"
+    ).value =
+      read(
+        item,
+        [
+          "ImageURL",
+          "imageURL",
+          "Image",
+          "image"
+        ]
+      );
+
+    document.getElementById(
+      "serviceDescription"
+    ).value =
+      read(
+        item,
+        [
+          "Description",
+          "description"
+        ]
+      );
+
+    document.getElementById(
+      "serviceStatus"
+    ).value =
+      read(
+        item,
+        [
+          "Status",
+          "status"
+        ],
+        "Active"
+      );
+
+  }
+
+
+  modal.classList.add(
+    "open"
+  );
+
+}
+
+
+function closeModal(){
+
+  document
+    .getElementById(
+      "serviceModal"
+    )
+    .classList.remove(
+      "open"
+    );
+
+}
+
+
+function editService(
+  id
+){
+
+  const item =
+    services.find(
+      service =>
+        String(
+          read(
+            service,
+            [
+              "ServiceID",
+              "serviceId",
+              "ProductID",
+              "productId",
+              "ID",
+              "id"
+            ]
+          )
+        ) ===
+        String(id)
+    );
+
+  if(item){
+
+    openModal(
+      item
+    );
+
+  }
+
+}
+
+
+async function saveService(
+  event
+){
+
+  event.preventDefault();
+
+  const button =
+    document.getElementById(
+      "saveServiceButton"
+    );
+
+  const id =
+    document.getElementById(
+      "serviceId"
+    ).value;
+
+  const businessId =
+    getBusinessId();
+
+  const payload = {
+
+    businessId,
+    BusinessID:businessId,
+
+    serviceId:id,
+    ServiceID:id,
+
+    name:
+      document.getElementById(
+        "serviceName"
+      ).value.trim(),
+
+    Name:
+      document.getElementById(
+        "serviceName"
+      ).value.trim(),
+
+    serviceName:
+      document.getElementById(
+        "serviceName"
+      ).value.trim(),
+
+    ServiceName:
+      document.getElementById(
+        "serviceName"
+      ).value.trim(),
+
+    type:
+      document.getElementById(
+        "serviceType"
+      ).value,
+
+    Type:
+      document.getElementById(
+        "serviceType"
+      ).value,
+
+    price:
+      document.getElementById(
+        "servicePrice"
+      ).value.trim(),
+
+    Price:
+      document.getElementById(
+        "servicePrice"
+      ).value.trim(),
+
+    imageURL:
+      document.getElementById(
+        "serviceImage"
+      ).value.trim(),
+
+    ImageURL:
+      document.getElementById(
+        "serviceImage"
+      ).value.trim(),
+
+    description:
+      document.getElementById(
+        "serviceDescription"
+      ).value.trim(),
+
+    Description:
+      document.getElementById(
+        "serviceDescription"
+      ).value.trim(),
+
+    status:
+      document.getElementById(
+        "serviceStatus"
+      ).value,
+
+    Status:
+      document.getElementById(
+        "serviceStatus"
+      ).value
+
+  };
+
+
+  if(!payload.name){
+
+    alert(
+      "Please enter product/service name."
+    );
+
+    return;
+
+  }
+
+
+  try{
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Saving...";
+
+
+    const response =
+      await App.api.call(
+        SERVICES_SAVE_ACTION,
+        payload,
+        {
+          retries:1
+        }
+      );
+
+
+    if(
+      !response ||
+      response.success === false
+    ){
+
+      throw new Error(
+        response?.message ||
+        "Unable to save."
+      );
+
+    }
+
+
+    closeModal();
+
+    await loadServices();
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+    alert(
+      error.message ||
+      "Unable to save product/service."
+    );
+
+  }finally{
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Save";
+
+  }
+
+}
+
+
+async function deleteService(
+  id
+){
+
+  const item =
+    services.find(
+      service =>
+        String(
+          read(
+            service,
+            [
+              "ServiceID",
+              "serviceId",
+              "ProductID",
+              "productId",
+              "ID",
+              "id"
+            ]
+          )
+        ) ===
+        String(id)
+    );
+
+  if(!item){
+    return;
+  }
+
+
+  const name =
+    read(
+      item,
+      [
+        "ServiceName",
+        "serviceName",
+        "ProductName",
+        "productName",
+        "Name",
+        "name"
+      ],
+      "this item"
+    );
+
+
+  if(
+    !confirm(
+      `Delete "${name}"?`
+    )
+  ){
+
+    return;
+
+  }
+
+
+  try{
+
+    const response =
+      await App.api.call(
+        SERVICES_DELETE_ACTION,
+        {
+          businessId:
+            getBusinessId(),
+
+          BusinessID:
+            getBusinessId(),
+
+          serviceId:id,
+          ServiceID:id
+        },
+        {
+          retries:1
+        }
+      );
+
+
+    if(
+      !response ||
+      response.success === false
+    ){
+
+      throw new Error(
+        response?.message ||
+        "Unable to delete item."
+      );
+
+    }
+
+
+    await loadServices();
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+    alert(
+      error.message ||
+      "Unable to delete product/service."
+    );
+
+  }
+
+}
+
+
+async function loadServices(){
+
+  const businessId =
+    getBusinessId();
+
+  if(!businessId){
+
+    location.href =
+      "business-login.html";
+
+    return;
+
+  }
+
+
+  try{
+
+    const response =
+      await App.api.call(
+        SERVICES_GET_ACTION,
+        {
+          businessId,
+          BusinessID:businessId
+        },
+        {
+          retries:1
+        }
+      );
+
+
+    if(
+      !response ||
+      response.success === false
+    ){
+
+      throw new Error(
+        response?.message ||
+        "Products/services could not be loaded."
+      );
+
+    }
+
+
+    const data =
+      response.data ||
+      response;
+
+
+    services =
+      data.services ||
+      data.products ||
+      data.items ||
+      [];
+
+
+    if(
+      !Array.isArray(
+        services
+      )
+    ){
+
+      services = [];
+
+    }
+
+
+    renderServices();
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+    document.getElementById(
+      "serviceCards"
+    ).innerHTML =
+      `
+      <div class="empty">
+        Unable to load products/services.
+        <br><br>
+        <button
+          onclick="loadServices()"
+          style="border:1px solid #cbd5e1;background:#fff;border-radius:8px;padding:8px 12px;cursor:pointer"
+        >
+          Retry
+        </button>
+      </div>
+      `;
+
+  }
+
+}
+
+
+function logout(){
+
+  localStorage.removeItem(
+    "ubnux_business_auth"
+  );
+
+  localStorage.removeItem(
+    "zilaBiz_business_auth"
+  );
+
+  sessionStorage.removeItem(
+    "ubnux_business_auth"
+  );
+
+  location.href =
+    "business-login.html";
+
+}
+
+
+function setBusinessName(){
+
+  const auth =
+    getAuth();
+
+  const business =
+    auth?.business ||
+    auth?.user ||
+    auth?.data ||
+    auth ||
+    {};
+
+  document.getElementById(
+    "sidebarBusinessName"
+  ).textContent =
+    read(
+      business,
+      [
+        "BusinessName",
+        "businessName",
+        "Name",
+        "name"
+      ],
+      "Business"
+    );
+
+}
+
+
+document
+  .getElementById(
+    "addButton"
+  )
+  .addEventListener(
+    "click",
+    () => openModal()
+  );
+
+
+document
+  .getElementById(
+    "closeModal"
+  )
+  .addEventListener(
+    "click",
+    closeModal
+  );
+
+
+document
+  .getElementById(
+    "cancelModal"
+  )
+  .addEventListener(
+    "click",
+    closeModal
+  );
+
+
+document
+  .getElementById(
+    "serviceForm"
+  )
+  .addEventListener(
+    "submit",
+    saveService
+  );
+
+
+document
+  .getElementById(
+    "serviceModal"
+  )
+  .addEventListener(
+    "click",
+    event => {
+
+      if(
+        event.target.id ===
+        "serviceModal"
+      ){
+
+        closeModal();
+
+      }
+
+    }
+  );
+
+
+document
+  .getElementById(
+    "logoutButton"
+  )
+  .addEventListener(
+    "click",
+    logout
+  );
+
+
+document
+  .getElementById(
+    "mobileMenuButton"
+  )
+  .addEventListener(
+    "click",
+    () => {
+
+      document
+        .getElementById(
+          "sidebar"
+        )
+        .classList.toggle(
+          "open"
+        );
+
+    }
+  );
+
+
+setBusinessName();
+
+loadServices();
+
+</script>
+
+</body>
+</html>

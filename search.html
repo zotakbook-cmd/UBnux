@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Search Businesses | UBnux</title>
+
+  <meta
+    name="description"
+    content="Search local businesses, products and services on UBnux."
+  >
+
+  <meta
+    name="robots"
+    content="index,follow"
+  >
+
+  <link
+    rel="stylesheet"
+    href="assets/css/style.css"
+  >
+
+  <style>
+
+    body {
+      margin: 0;
+      background: #f6f7f9;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    .page {
+      max-width: 1180px;
+      margin: auto;
+      padding: 30px 18px 70px;
+    }
+
+    .search-header {
+      padding: 25px;
+      margin-bottom: 20px;
+      border-radius: 16px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+    }
+
+    .search-header h1 {
+      margin: 0 0 15px;
+      color: #111827;
+      font-size: 27px;
+    }
+
+    .search-form {
+      display: flex;
+      gap: 9px;
+    }
+
+    .search-form input {
+      flex: 1;
+      min-height: 48px;
+      padding: 0 14px;
+      border: 1px solid #d9dde3;
+      border-radius: 9px;
+      font: inherit;
+      outline: none;
+    }
+
+    .search-form button {
+      min-height: 48px;
+      padding: 0 20px;
+      border: 0;
+      border-radius: 9px;
+      background: #111827;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .result-info {
+      margin-bottom: 15px;
+      color: #6b7280;
+      font-size: 13px;
+    }
+
+    .business-grid {
+      display: grid;
+      grid-template-columns:
+        repeat(3,minmax(0,1fr));
+      gap: 16px;
+    }
+
+    .business-card {
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      background: #fff;
+    }
+
+    .business-image {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      background: #f3f4f6;
+    }
+
+    .business-body {
+      padding: 17px;
+    }
+
+    .business-body h2 {
+      margin: 0 0 7px;
+      color: #111827;
+      font-size: 16px;
+    }
+
+    .category {
+      color: #6b7280;
+      font-size: 12px;
+    }
+
+    .location {
+      margin-top: 7px;
+      color: #4b5563;
+      font-size: 12px;
+    }
+
+    .rating {
+      margin-top: 7px;
+      color: #111827;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .view {
+      display: inline-flex;
+      margin-top: 14px;
+      min-height: 36px;
+      padding: 0 12px;
+      align-items: center;
+      border-radius: 8px;
+      background: #111827;
+      color: #fff;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .empty {
+      grid-column: 1 / -1;
+      padding: 60px 20px;
+      text-align: center;
+      color: #6b7280;
+    }
+
+    @media (max-width: 900px) {
+
+      .business-grid {
+        grid-template-columns:
+          repeat(2,minmax(0,1fr));
+      }
+
+    }
+
+    @media (max-width: 600px) {
+
+      .business-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .search-form {
+        flex-direction: column;
+      }
+
+      .search-form button {
+        width: 100%;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <main class="page">
+
+    <section class="search-header">
+
+      <h1>
+        Search UBnux
+      </h1>
+
+      <form
+        id="searchForm"
+        class="search-form"
+      >
+
+        <input
+          id="searchInput"
+          type="search"
+          placeholder="Search business, product, service or area..."
+          autocomplete="off"
+        >
+
+        <button
+          type="submit"
+        >
+          Search
+        </button>
+
+      </form>
+
+    </section>
+
+
+    <div
+      id="resultInfo"
+      class="result-info"
+    >
+      Searching...
+    </div>
+
+
+    <section
+      id="businessGrid"
+      class="business-grid"
+    >
+
+      <div class="empty">
+        Loading businesses...
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/state.js"></script>
+  <script src="assets/js/cache.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/filters.js"></script>
+  <script src="assets/js/utils.js"></script>
+
+
+  <script>
+
+    (function () {
+
+      "use strict";
+
+
+      const App =
+        window.UBnux ||
+        window.ZilaBiz ||
+        {};
+
+
+      const params =
+        new URLSearchParams(
+          location.search
+        );
+
+
+      const initialQuery =
+        params.get("q") ||
+        params.get("search") ||
+        "";
+
+
+      let businesses =
+        [];
+
+
+      function text(value) {
+
+        return String(
+          value == null
+            ? ""
+            : value
+        ).trim();
+
+      }
+
+
+      function get(
+        object,
+        keys,
+        fallback
+      ) {
+
+        for (
+          const key of keys
+        ) {
+
+          if (
+            object &&
+            object[key] !== undefined &&
+            object[key] !== null &&
+            text(object[key])
+          ) {
+
+            return object[key];
+
+          }
+
+        }
+
+        return fallback || "";
+
+      }
+
+
+      function image(
+        value
+      ) {
+
+        if (
+          /^https?:\/\//i.test(
+            text(value)
+          )
+        ) {
+
+          return value;
+
+        }
+
+
+        return "data:image/svg+xml," +
+          encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg"
+              width="600"
+              height="340">
+              <rect width="100%" height="100%"
+                fill="#f3f4f6"/>
+              <text x="50%" y="50%"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                font-family="Arial"
+                font-size="32"
+                fill="#9ca3af">
+                UBnux
+              </text>
+            </svg>
+          `);
+
+      }
+
+
+      async function load() {
+
+        try {
+
+          const response =
+            await App.api.getInitialDataFast();
+
+
+          if (
+            !response ||
+            !response.success
+          ) {
+
+            throw new Error(
+              "Unable to load businesses."
+            );
+
+          }
+
+
+          businesses =
+            response.data &&
+            Array.isArray(
+              response.data.businesses
+            )
+              ? response.data.businesses
+              : [];
+
+
+          document.getElementById(
+            "searchInput"
+          ).value =
+            initialQuery;
+
+
+          performSearch();
+
+
+        } catch (error) {
+
+          console.error(
+            error
+          );
+
+
+          document.getElementById(
+            "businessGrid"
+          ).innerHTML =
+            `
+              <div class="empty">
+                Unable to load businesses.
+              </div>
+            `;
+
+        }
+
+      }
+
+
+      function performSearch() {
+
+        const query =
+          text(
+            document.getElementById(
+              "searchInput"
+            ).value
+          ).toLowerCase();
+
+
+        let results =
+          businesses;
+
+
+        if (query) {
+
+          if (
+            App.filters &&
+            typeof App.filters.filterBusinesses ===
+              "function"
+          ) {
+
+            results =
+              App.filters.filterBusinesses(
+                businesses,
+                {
+                  search:
+                    query
+                }
+              );
+
+          } else {
+
+            results =
+              businesses.filter(
+                business => {
+
+                  const searchable =
+                    [
+                      get(
+                        business,
+                        [
+                          "BusinessName",
+                          "businessName",
+                          "Name"
+                        ],
+                        ""
+                      ),
+
+                      get(
+                        business,
+                        [
+                          "CategoryName",
+                          "Category"
+                        ],
+                        ""
+                      ),
+
+                      get(
+                        business,
+                        [
+                          "Area",
+                          "Locality"
+                        ],
+                        ""
+                      ),
+
+                      get(
+                        business,
+                        [
+                          "Address"
+                        ],
+                        ""
+                      ),
+
+                      get(
+                        business,
+                        [
+                          "Products",
+                          "Services",
+                          "Description"
+                        ],
+                        ""
+                      )
+
+                    ]
+                      .join(" ")
+                      .toLowerCase();
+
+
+                  return searchable.includes(
+                    query
+                  );
+
+                }
+              );
+
+          }
+
+        }
+
+
+        render(
+          results,
+          query
+        );
+
+      }
+
+
+      function render(
+        results,
+        query
+      ) {
+
+        const grid =
+          document.getElementById(
+            "businessGrid"
+          );
+
+
+        document.getElementById(
+          "resultInfo"
+        ).textContent =
+          query
+            ? results.length +
+              " result" +
+              (
+                results.length === 1
+                  ? ""
+                  : "s"
+              ) +
+              " found for \"" +
+              query +
+              "\""
+            : businesses.length +
+              " businesses available";
+
+
+        if (!results.length) {
+
+          grid.innerHTML =
+            `
+              <div class="empty">
+
+                <strong>
+                  No businesses found.
+                </strong>
+
+                <br><br>
+
+                Try another business name,
+                category, product, service or area.
+
+              </div>
+            `;
+
+          return;
+
+        }
+
+
+        grid.innerHTML =
+          results
+            .map(
+              business => {
+
+                const id =
+                  get(
+                    business,
+                    [
+                      "BusinessID",
+                      "BusinessId",
+                      "businessId",
+                      "ID",
+                      "Id"
+                    ],
+                    ""
+                  );
+
+
+                const name =
+                  get(
+                    business,
+                    [
+                      "BusinessName",
+                      "businessName",
+                      "Name",
+                      "name"
+                    ],
+                    "Business"
+                  );
+
+
+                const category =
+                  get(
+                    business,
+                    [
+                      "CategoryName",
+                      "Category"
+                    ],
+                    ""
+                  );
+
+
+                const area =
+                  get(
+                    business,
+                    [
+                      "Area",
+                      "Locality"
+                    ],
+                    ""
+                  );
+
+
+                const district =
+                  get(
+                    business,
+                    [
+                      "DistrictName",
+                      "District"
+                    ],
+                    ""
+                  );
+
+
+                const rating =
+                  get(
+                    business,
+                    [
+                      "Rating",
+                      "rating"
+                    ],
+                    ""
+                  );
+
+
+                return `
+                  <article class="business-card">
+
+                    <img
+                      class="business-image"
+                      src="${image(
+                        get(
+                          business,
+                          [
+                            "ImageURL",
+                            "Image",
+                            "LogoURL",
+                            "Logo"
+                          ],
+                          ""
+                        )
+                      )}"
+                      alt="${name}"
+                      loading="lazy"
+                    >
+
+                    <div class="business-body">
+
+                      <h2>
+                        ${name}
+                      </h2>
+
+                      <div class="category">
+                        ${category}
+                      </div>
+
+                      <div class="location">
+                        ${[
+                          area,
+                          district
+                        ]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </div>
+
+                      ${
+                        rating
+                          ? `
+                            <div class="rating">
+                              ★ ${rating}
+                            </div>
+                          `
+                          : ""
+                      }
+
+                      <a
+                        class="view"
+                        href="business-details.html?id=${encodeURIComponent(id)}"
+                      >
+                        View Business
+                      </a>
+
+                    </div>
+
+                  </article>
+                `;
+
+              }
+            )
+            .join("");
+
+      }
+
+
+      document.getElementById(
+        "searchForm"
+      ).addEventListener(
+        "submit",
+        function (event) {
+
+          event.preventDefault();
+
+
+          const query =
+            text(
+              document.getElementById(
+                "searchInput"
+              ).value
+            );
+
+
+          const url =
+            new URL(
+              location.href
+            );
+
+
+          url.searchParams.delete(
+            "search"
+          );
+
+
+          if (query) {
+
+            url.searchParams.set(
+              "q",
+              query
+            );
+
+          } else {
+
+            url.searchParams.delete(
+              "q"
+            );
+
+          }
+
+
+          history.replaceState(
+            null,
+            "",
+            url
+          );
+
+
+          performSearch();
+
+        }
+      );
+
+
+      document.getElementById(
+        "searchInput"
+      ).addEventListener(
+        "input",
+        performSearch
+      );
+
+
+      load();
+
+    })();
+
+  </script>
+
+</body>
+
+</html>

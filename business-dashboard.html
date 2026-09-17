@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="theme-color"
+    content="#0f172a"
+  >
+
+  <title>Business Dashboard | UBnux</title>
+
+  <link
+    rel="stylesheet"
+    href="assets/css/style.css"
+  >
+
+  <style>
+
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      background:#f8fafc;
+      color:#0f172a;
+      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+
+    a{
+      color:inherit;
+      text-decoration:none;
+    }
+
+    button,
+    input,
+    select{
+      font:inherit;
+    }
+
+    .dashboard-layout{
+      min-height:100vh;
+      display:flex;
+    }
+
+    .sidebar{
+      width:260px;
+      background:#0f172a;
+      color:#fff;
+      position:fixed;
+      inset:0 auto 0 0;
+      z-index:100;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .brand{
+      padding:24px 22px;
+      border-bottom:1px solid rgba(255,255,255,.1);
+    }
+
+    .brand-title{
+      font-size:24px;
+      font-weight:800;
+      letter-spacing:-.5px;
+    }
+
+    .brand-subtitle{
+      margin-top:4px;
+      font-size:12px;
+      color:#94a3b8;
+    }
+
+    .business-mini{
+      padding:20px 18px;
+      border-bottom:1px solid rgba(255,255,255,.1);
+    }
+
+    .business-mini-name{
+      font-weight:700;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .business-mini-status{
+      margin-top:7px;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-size:12px;
+      color:#86efac;
+    }
+
+    .business-mini-status::before{
+      content:"";
+      width:7px;
+      height:7px;
+      border-radius:50%;
+      background:#22c55e;
+    }
+
+    .sidebar-nav{
+      padding:16px 12px;
+      flex:1;
+      overflow:auto;
+    }
+
+    .sidebar-nav a{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:12px 14px;
+      margin-bottom:5px;
+      border-radius:10px;
+      color:#cbd5e1;
+      font-size:14px;
+      transition:.2s;
+    }
+
+    .sidebar-nav a:hover,
+    .sidebar-nav a.active{
+      background:#1e293b;
+      color:#fff;
+    }
+
+    .sidebar-bottom{
+      padding:14px 12px;
+      border-top:1px solid rgba(255,255,255,.1);
+    }
+
+    .logout-btn{
+      width:100%;
+      border:0;
+      background:#1e293b;
+      color:#e2e8f0;
+      padding:11px 14px;
+      border-radius:10px;
+      cursor:pointer;
+    }
+
+    .main{
+      margin-left:260px;
+      width:calc(100% - 260px);
+      min-width:0;
+    }
+
+    .topbar{
+      height:72px;
+      background:#fff;
+      border-bottom:1px solid #e2e8f0;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 30px;
+      position:sticky;
+      top:0;
+      z-index:50;
+    }
+
+    .page-title{
+      font-size:21px;
+      font-weight:750;
+    }
+
+    .topbar-right{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .view-site{
+      border:1px solid #dbe3ee;
+      background:#fff;
+      padding:9px 14px;
+      border-radius:9px;
+      cursor:pointer;
+      color:#334155;
+    }
+
+    .profile-avatar{
+      width:38px;
+      height:38px;
+      border-radius:50%;
+      background:#e2e8f0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:700;
+      color:#334155;
+    }
+
+    .content{
+      padding:30px;
+      max-width:1500px;
+      margin:auto;
+    }
+
+    .welcome{
+      margin-bottom:25px;
+    }
+
+    .welcome h1{
+      margin:0;
+      font-size:28px;
+      letter-spacing:-.5px;
+    }
+
+    .welcome p{
+      margin:7px 0 0;
+      color:#64748b;
+    }
+
+    .stats-grid{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:18px;
+      margin-bottom:25px;
+    }
+
+    .stat-card{
+      background:#fff;
+      border:1px solid #e2e8f0;
+      border-radius:16px;
+      padding:20px;
+      box-shadow:0 4px 15px rgba(15,23,42,.04);
+    }
+
+    .stat-label{
+      font-size:13px;
+      color:#64748b;
+    }
+
+    .stat-value{
+      margin-top:10px;
+      font-size:29px;
+      font-weight:800;
+    }
+
+    .stat-note{
+      margin-top:6px;
+      font-size:12px;
+      color:#94a3b8;
+    }
+
+    .dashboard-grid{
+      display:grid;
+      grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);
+      gap:20px;
+    }
+
+    .panel{
+      background:#fff;
+      border:1px solid #e2e8f0;
+      border-radius:16px;
+      overflow:hidden;
+      box-shadow:0 4px 15px rgba(15,23,42,.04);
+    }
+
+    .panel-header{
+      padding:18px 20px;
+      border-bottom:1px solid #e2e8f0;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .panel-title{
+      font-weight:750;
+    }
+
+    .panel-link{
+      font-size:13px;
+      color:#2563eb;
+    }
+
+    .enquiry-list{
+      padding:4px 20px;
+    }
+
+    .enquiry-item{
+      padding:16px 0;
+      border-bottom:1px solid #eef2f7;
+      display:flex;
+      justify-content:space-between;
+      gap:15px;
+    }
+
+    .enquiry-item:last-child{
+      border-bottom:0;
+    }
+
+    .enquiry-name{
+      font-weight:650;
+    }
+
+    .enquiry-meta{
+      margin-top:4px;
+      color:#64748b;
+      font-size:12px;
+    }
+
+    .status{
+      display:inline-flex;
+      align-items:center;
+      border-radius:999px;
+      padding:5px 9px;
+      font-size:11px;
+      font-weight:700;
+      white-space:nowrap;
+    }
+
+    .status-pending{
+      background:#fef3c7;
+      color:#92400e;
+    }
+
+    .status-contacted{
+      background:#dbeafe;
+      color:#1d4ed8;
+    }
+
+    .status-completed{
+      background:#dcfce7;
+      color:#166534;
+    }
+
+    .status-rejected{
+      background:#fee2e2;
+      color:#b91c1c;
+    }
+
+    .quick-actions{
+      padding:20px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    .quick-action{
+      border:1px solid #e2e8f0;
+      background:#f8fafc;
+      padding:15px;
+      border-radius:12px;
+      cursor:pointer;
+      text-align:left;
+      transition:.2s;
+    }
+
+    .quick-action:hover{
+      border-color:#cbd5e1;
+      background:#f1f5f9;
+    }
+
+    .quick-action-title{
+      font-size:14px;
+      font-weight:700;
+    }
+
+    .quick-action-desc{
+      margin-top:4px;
+      font-size:11px;
+      color:#64748b;
+    }
+
+    .profile-progress{
+      padding:20px;
+    }
+
+    .progress-label{
+      display:flex;
+      justify-content:space-between;
+      font-size:13px;
+      margin-bottom:9px;
+    }
+
+    .progress-bar{
+      height:9px;
+      background:#e2e8f0;
+      border-radius:99px;
+      overflow:hidden;
+    }
+
+    .progress-fill{
+      height:100%;
+      width:0;
+      background:#2563eb;
+      border-radius:99px;
+      transition:width .4s ease;
+    }
+
+    .profile-tips{
+      margin-top:17px;
+      display:grid;
+      gap:9px;
+    }
+
+    .tip{
+      display:flex;
+      gap:9px;
+      font-size:12px;
+      color:#64748b;
+    }
+
+    .empty{
+      padding:35px 20px;
+      text-align:center;
+      color:#94a3b8;
+      font-size:13px;
+    }
+
+    .mobile-menu-btn{
+      display:none;
+      border:0;
+      background:#f1f5f9;
+      border-radius:9px;
+      padding:9px;
+      cursor:pointer;
+    }
+
+    .loading{
+      opacity:.6;
+      pointer-events:none;
+    }
+
+    @media(max-width:1100px){
+
+      .stats-grid{
+        grid-template-columns:repeat(2,1fr);
+      }
+
+      .dashboard-grid{
+        grid-template-columns:1fr;
+      }
+
+    }
+
+    @media(max-width:760px){
+
+      .sidebar{
+        transform:translateX(-100%);
+        transition:.25s;
+      }
+
+      .sidebar.open{
+        transform:translateX(0);
+      }
+
+      .main{
+        margin-left:0;
+        width:100%;
+      }
+
+      .mobile-menu-btn{
+        display:block;
+      }
+
+      .topbar{
+        padding:0 16px;
+      }
+
+      .content{
+        padding:20px 15px;
+      }
+
+      .stats-grid{
+        grid-template-columns:1fr 1fr;
+        gap:10px;
+      }
+
+      .stat-card{
+        padding:15px;
+      }
+
+      .stat-value{
+        font-size:23px;
+      }
+
+      .view-site{
+        display:none;
+      }
+
+    }
+
+    @media(max-width:480px){
+
+      .stats-grid{
+        grid-template-columns:1fr;
+      }
+
+      .quick-actions{
+        grid-template-columns:1fr;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+<div class="dashboard-layout">
+
+  <aside
+    class="sidebar"
+    id="sidebar"
+  >
+
+    <div class="brand">
+      <div class="brand-title">UBnux</div>
+      <div class="brand-subtitle">
+        Business Management
+      </div>
+    </div>
+
+    <div class="business-mini">
+
+      <div
+        class="business-mini-name"
+        id="sidebarBusinessName"
+      >
+        Business
+      </div>
+
+      <div class="business-mini-status">
+        Business Panel
+      </div>
+
+    </div>
+
+    <nav class="sidebar-nav">
+
+      <a
+        href="business-dashboard.html"
+        class="active"
+      >
+        📊 Dashboard
+      </a>
+
+      <a href="business-profile.html">
+        🏪 Business Profile
+      </a>
+
+      <a href="business-enquiries.html">
+        💬 Enquiries
+      </a>
+
+      <a href="business-services.html">
+        🛍️ Products & Services
+      </a>
+
+      <a href="business-settings.html">
+        ⚙️ Settings
+      </a>
+
+    </nav>
+
+    <div class="sidebar-bottom">
+
+      <button
+        class="logout-btn"
+        id="logoutButton"
+      >
+        Logout
+      </button>
+
+    </div>
+
+  </aside>
+
+
+  <main class="main">
+
+    <header class="topbar">
+
+      <div class="topbar-right">
+
+        <button
+          class="mobile-menu-btn"
+          id="mobileMenuButton"
+          aria-label="Open menu"
+        >
+          ☰
+        </button>
+
+        <div class="page-title">
+          Dashboard
+        </div>
+
+      </div>
+
+      <div class="topbar-right">
+
+        <button
+          class="view-site"
+          id="viewSiteButton"
+        >
+          View UBnux
+        </button>
+
+        <div
+          class="profile-avatar"
+          id="profileAvatar"
+        >
+          B
+        </div>
+
+      </div>
+
+    </header>
+
+
+    <section class="content">
+
+      <div class="welcome">
+
+        <h1>
+          Welcome,
+          <span id="welcomeBusinessName">
+            Business
+          </span>
+        </h1>
+
+        <p>
+          Manage your UBnux business listing and customer enquiries.
+        </p>
+
+      </div>
+
+
+      <div class="stats-grid">
+
+        <div class="stat-card">
+          <div class="stat-label">
+            Profile Views
+          </div>
+          <div
+            class="stat-value"
+            id="profileViews"
+          >
+            0
+          </div>
+          <div class="stat-note">
+            Total profile visits
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">
+            Enquiries
+          </div>
+          <div
+            class="stat-value"
+            id="enquiryCount"
+          >
+            0
+          </div>
+          <div class="stat-note">
+            Customer enquiries
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">
+            Products & Services
+          </div>
+          <div
+            class="stat-value"
+            id="serviceCount"
+          >
+            0
+          </div>
+          <div class="stat-note">
+            Active listings
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">
+            Profile Status
+          </div>
+          <div
+            class="stat-value"
+            id="profileStatus"
+          >
+            —
+          </div>
+          <div class="stat-note">
+            Listing status
+          </div>
+        </div>
+
+      </div>
+
+
+      <div class="dashboard-grid">
+
+        <section class="panel">
+
+          <div class="panel-header">
+
+            <div class="panel-title">
+              Recent Enquiries
+            </div>
+
+            <a
+              href="business-enquiries.html"
+              class="panel-link"
+            >
+              View All
+            </a>
+
+          </div>
+
+          <div
+            class="enquiry-list"
+            id="recentEnquiries"
+          >
+
+            <div class="empty">
+              Loading enquiries...
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <section>
+
+          <div class="panel">
+
+            <div class="panel-header">
+
+              <div class="panel-title">
+                Quick Actions
+              </div>
+
+            </div>
+
+            <div class="quick-actions">
+
+              <button
+                class="quick-action"
+                onclick="location.href='business-profile.html'"
+              >
+
+                <div class="quick-action-title">
+                  Edit Profile
+                </div>
+
+                <div class="quick-action-desc">
+                  Update your business information
+                </div>
+
+              </button>
+
+
+              <button
+                class="quick-action"
+                onclick="location.href='business-services.html'"
+              >
+
+                <div class="quick-action-title">
+                  Add Service
+                </div>
+
+                <div class="quick-action-desc">
+                  Add products or services
+                </div>
+
+              </button>
+
+
+              <button
+                class="quick-action"
+                onclick="location.href='business-enquiries.html'"
+              >
+
+                <div class="quick-action-title">
+                  Enquiries
+                </div>
+
+                <div class="quick-action-desc">
+                  Manage customer enquiries
+                </div>
+
+              </button>
+
+
+              <button
+                class="quick-action"
+                onclick="location.href='business-settings.html'"
+              >
+
+                <div class="quick-action-title">
+                  Settings
+                </div>
+
+                <div class="quick-action-desc">
+                  Manage account settings
+                </div>
+
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <div
+            class="panel"
+            style="margin-top:20px"
+          >
+
+            <div class="panel-header">
+
+              <div class="panel-title">
+                Profile Completion
+              </div>
+
+            </div>
+
+            <div class="profile-progress">
+
+              <div class="progress-label">
+
+                <span>
+                  Profile completeness
+                </span>
+
+                <strong id="profilePercent">
+                  0%
+                </strong>
+
+              </div>
+
+              <div class="progress-bar">
+
+                <div
+                  class="progress-fill"
+                  id="profileProgress"
+                ></div>
+
+              </div>
+
+
+              <div class="profile-tips">
+
+                <div class="tip">
+                  ✓ Add complete business information
+                </div>
+
+                <div class="tip">
+                  ✓ Add products and services
+                </div>
+
+                <div class="tip">
+                  ✓ Add contact information
+                </div>
+
+                <div class="tip">
+                  ✓ Add business description
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+      </div>
+
+    </section>
+
+  </main>
+
+</div>
+
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/state.js"></script>
+<script src="assets/js/cache.js"></script>
+<script src="assets/js/api.js"></script>
+<script src="assets/js/utils.js"></script>
+
+
+<script>
+
+"use strict";
+
+
+const DASHBOARD_ACTION =
+  "getbusinessdashboard";
+
+
+function getAuth(){
+
+  try{
+
+    const raw =
+      localStorage.getItem(
+        "ubnux_business_auth"
+      ) ||
+      sessionStorage.getItem(
+        "ubnux_business_auth"
+      ) ||
+      localStorage.getItem(
+        "zilaBiz_business_auth"
+      );
+
+    if(!raw){
+      return null;
+    }
+
+    return JSON.parse(raw);
+
+  }catch(error){
+
+    return null;
+
+  }
+
+}
+
+
+function logout(){
+
+  localStorage.removeItem(
+    "ubnux_business_auth"
+  );
+
+  localStorage.removeItem(
+    "zilaBiz_business_auth"
+  );
+
+  sessionStorage.removeItem(
+    "ubnux_business_auth"
+  );
+
+  location.href =
+    "business-login.html";
+
+}
+
+
+function valueFrom(
+  obj,
+  keys,
+  fallback = ""
+){
+
+  if(!obj){
+    return fallback;
+  }
+
+  for(
+    const key of keys
+  ){
+
+    if(
+      obj[key] !== undefined &&
+      obj[key] !== null &&
+      String(obj[key]).trim() !== ""
+    ){
+
+      return obj[key];
+
+    }
+
+  }
+
+  return fallback;
+
+}
+
+
+function escapeHTML(value){
+
+  return String(
+    value ?? ""
+  )
+  .replace(/&/g,"&amp;")
+  .replace(/</g,"&lt;")
+  .replace(/>/g,"&gt;")
+  .replace(/"/g,"&quot;")
+  .replace(/'/g,"&#039;");
+
+}
+
+
+function getBusinessFromAuth(){
+
+  const auth =
+    getAuth();
+
+  if(!auth){
+    return null;
+  }
+
+  return (
+    auth.business ||
+    auth.user ||
+    auth.data ||
+    auth
+  );
+
+}
+
+
+function renderBusinessIdentity(){
+
+  const business =
+    getBusinessFromAuth();
+
+  if(!business){
+    location.href =
+      "business-login.html";
+    return;
+  }
+
+  const name =
+    valueFrom(
+      business,
+      [
+        "BusinessName",
+        "businessName",
+        "Name",
+        "name"
+      ],
+      "Business"
+    );
+
+  document.getElementById(
+    "welcomeBusinessName"
+  ).textContent = name;
+
+  document.getElementById(
+    "sidebarBusinessName"
+  ).textContent = name;
+
+  document.getElementById(
+    "profileAvatar"
+  ).textContent =
+    name
+      .charAt(0)
+      .toUpperCase();
+
+}
+
+
+function getStatusClass(status){
+
+  const value =
+    String(status || "")
+      .toLowerCase();
+
+  if(
+    value.includes("complete") ||
+    value.includes("closed")
+  ){
+    return "status-completed";
+  }
+
+  if(
+    value.includes("contact")
+  ){
+    return "status-contacted";
+  }
+
+  if(
+    value.includes("reject")
+  ){
+    return "status-rejected";
+  }
+
+  return "status-pending";
+
+}
+
+
+function renderRecentEnquiries(
+  enquiries
+){
+
+  const box =
+    document.getElementById(
+      "recentEnquiries"
+    );
+
+  if(
+    !Array.isArray(enquiries) ||
+    enquiries.length === 0
+  ){
+
+    box.innerHTML =
+      '<div class="empty">No enquiries yet.</div>';
+
+    return;
+
+  }
+
+  box.innerHTML =
+    enquiries
+      .slice(0,5)
+      .map(item => {
+
+        const name =
+          valueFrom(
+            item,
+            [
+              "Name",
+              "name",
+              "CustomerName",
+              "customerName"
+            ],
+            "Customer"
+          );
+
+        const mobile =
+          valueFrom(
+            item,
+            [
+              "Mobile",
+              "mobile",
+              "Phone",
+              "phone"
+            ],
+            ""
+          );
+
+        const status =
+          valueFrom(
+            item,
+            [
+              "Status",
+              "status",
+              "EnquiryStatus",
+              "enquiryStatus"
+            ],
+            "Pending"
+          );
+
+        return `
+          <div class="enquiry-item">
+
+            <div>
+
+              <div class="enquiry-name">
+                ${escapeHTML(name)}
+              </div>
+
+              <div class="enquiry-meta">
+                ${escapeHTML(mobile)}
+              </div>
+
+            </div>
+
+            <span class="status ${getStatusClass(status)}">
+              ${escapeHTML(status)}
+            </span>
+
+          </div>
+        `;
+
+      })
+      .join("");
+
+}
+
+
+function calculateProfilePercent(
+  business
+){
+
+  if(!business){
+    return 0;
+  }
+
+  const fields = [
+
+    [
+      "BusinessName",
+      "businessName",
+      "Name",
+      "name"
+    ],
+
+    [
+      "OwnerName",
+      "ownerName",
+      "Owner"
+    ],
+
+    [
+      "Mobile",
+      "mobile",
+      "Phone",
+      "phone"
+    ],
+
+    [
+      "Email",
+      "email"
+    ],
+
+    [
+      "Address",
+      "address"
+    ],
+
+    [
+      "Description",
+      "description"
+    ],
+
+    [
+      "Category",
+      "category",
+      "CategoryName"
+    ],
+
+    [
+      "District",
+      "district",
+      "DistrictName"
+    ]
+
+  ];
+
+  let completed = 0;
+
+  fields.forEach(
+    keys => {
+
+      if(
+        String(
+          valueFrom(
+            business,
+            keys,
+            ""
+          )
+        ).trim()
+      ){
+
+        completed++;
+
+      }
+
+    }
+  );
+
+  return Math.round(
+    completed /
+    fields.length *
+    100
+  );
+
+}
+
+
+async function loadDashboard(){
+
+  const auth =
+    getAuth();
+
+  if(!auth){
+    location.href =
+      "business-login.html";
+    return;
+  }
+
+  try{
+
+    const identifier =
+      valueFrom(
+        auth,
+        [
+          "businessId",
+          "BusinessID",
+          "userId",
+          "UserID",
+          "id"
+        ],
+        ""
+      );
+
+    const response =
+      await App.api.call(
+        DASHBOARD_ACTION,
+        {
+          businessId: identifier,
+          BusinessID: identifier,
+          userId: identifier,
+          UserID: identifier
+        },
+        {
+          retries:1
+        }
+      );
+
+    if(
+      !response ||
+      response.success === false
+    ){
+
+      throw new Error(
+        response?.message ||
+        "Dashboard data could not be loaded."
+      );
+
+    }
+
+    const data =
+      response.data ||
+      response;
+
+    const business =
+      data.business ||
+      data.profile ||
+      getBusinessFromAuth();
+
+    const stats =
+      data.stats ||
+      data.summary ||
+      {};
+
+    const enquiries =
+      data.enquiries ||
+      data.recentEnquiries ||
+      [];
+
+    document.getElementById(
+      "profileViews"
+    ).textContent =
+      valueFrom(
+        stats,
+        [
+          "profileViews",
+          "ProfileViews",
+          "views",
+          "Views"
+        ],
+        0
+      );
+
+    document.getElementById(
+      "enquiryCount"
+    ).textContent =
+      valueFrom(
+        stats,
+        [
+          "enquiries",
+          "Enquiries",
+          "enquiryCount",
+          "EnquiryCount"
+        ],
+        enquiries.length
+      );
+
+    document.getElementById(
+      "serviceCount"
+    ).textContent =
+      valueFrom(
+        stats,
+        [
+          "services",
+          "Services",
+          "serviceCount",
+          "ServiceCount",
+          "products"
+        ],
+        data.services?.length || 0
+      );
+
+    document.getElementById(
+      "profileStatus"
+    ).textContent =
+      valueFrom(
+        business,
+        [
+          "Status",
+          "status",
+          "BusinessStatus",
+          "businessStatus"
+        ],
+        "Active"
+      );
+
+    const percent =
+      valueFrom(
+        data,
+        [
+          "profileCompletion",
+          "ProfileCompletion"
+        ],
+        calculateProfilePercent(
+          business
+        )
+      );
+
+    document.getElementById(
+      "profilePercent"
+    ).textContent =
+      `${percent}%`;
+
+    document.getElementById(
+      "profileProgress"
+    ).style.width =
+      `${Math.min(100,Number(percent) || 0)}%`;
+
+    renderRecentEnquiries(
+      enquiries
+    );
+
+  }catch(error){
+
+    console.error(
+      "Dashboard:",
+      error
+    );
+
+    document.getElementById(
+      "recentEnquiries"
+    ).innerHTML =
+      `
+      <div class="empty">
+        Unable to load dashboard data.
+        <br>
+        <button
+          onclick="loadDashboard()"
+          style="margin-top:10px;padding:8px 12px;border:1px solid #cbd5e1;background:white;border-radius:8px;cursor:pointer"
+        >
+          Retry
+        </button>
+      </div>
+      `;
+
+  }
+
+}
+
+
+document
+  .getElementById(
+    "logoutButton"
+  )
+  .addEventListener(
+    "click",
+    logout
+  );
+
+
+document
+  .getElementById(
+    "viewSiteButton"
+  )
+  .addEventListener(
+    "click",
+    () => {
+
+      location.href =
+        "index.html";
+
+    }
+  );
+
+
+document
+  .getElementById(
+    "mobileMenuButton"
+  )
+  .addEventListener(
+    "click",
+    () => {
+
+      document
+        .getElementById(
+          "sidebar"
+        )
+        .classList.toggle(
+          "open"
+        );
+
+    }
+  );
+
+
+renderBusinessIdentity();
+
+loadDashboard();
+
+</script>
+
+</body>
+</html>

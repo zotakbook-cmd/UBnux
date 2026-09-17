@@ -1,0 +1,2019 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Business Details | UBnux</title>
+
+  <meta
+    id="metaDescription"
+    name="description"
+    content="Find business details, products and services on UBnux."
+  >
+
+  <meta
+    id="metaRobots"
+    name="robots"
+    content="index,follow"
+  >
+
+  <link
+    id="canonicalLink"
+    rel="canonical"
+    href=""
+  >
+
+  <meta
+    property="og:type"
+    content="business.business"
+  >
+
+  <meta
+    id="ogTitle"
+    property="og:title"
+    content="Business Details | UBnux"
+  >
+
+  <meta
+    id="ogDescription"
+    property="og:description"
+    content="Find local businesses on UBnux."
+  >
+
+  <link
+    rel="stylesheet"
+    href="assets/css/style.css"
+  >
+
+  <style>
+
+    [hidden] {
+      display: none !important;
+    }
+
+    body {
+      margin: 0;
+      background: #f6f7f9;
+    }
+
+    .detail-page {
+      max-width: 1180px;
+      margin: auto;
+      padding: 25px 18px 70px;
+    }
+
+    .breadcrumb {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-bottom: 20px;
+      color: #6b7280;
+      font-size: 13px;
+    }
+
+    .breadcrumb a {
+      color: #374151;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .business-hero {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 25px;
+      padding: 25px;
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      background: #fff;
+    }
+
+    .business-image {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      border-radius: 14px;
+      background: #f3f4f6;
+    }
+
+    .business-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .business-info {
+      min-width: 0;
+    }
+
+    .business-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-bottom: 10px;
+    }
+
+    .badge {
+      display: inline-flex;
+      padding: 5px 9px;
+      border-radius: 20px;
+      background: #f3f4f6;
+      color: #374151;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .badge.featured {
+      background: #111827;
+      color: #fff;
+    }
+
+    .badge.verified {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .business-title {
+      margin: 0 0 8px;
+      color: #111827;
+      font-size: 34px;
+      line-height: 1.15;
+    }
+
+    .business-category {
+      margin-bottom: 10px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    .rating {
+      margin-bottom: 17px;
+      color: #111827;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .business-description {
+      max-width: 760px;
+      color: #4b5563;
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .action-button {
+      min-height: 44px;
+      padding: 0 17px;
+      border: 0;
+      border-radius: 9px;
+      background: #111827;
+      color: #fff;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .action-button.secondary {
+      border: 1px solid #d9dde3;
+      background: #fff;
+      color: #111827;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: minmax(0,2fr) minmax(280px,1fr);
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .card {
+      padding: 23px;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      background: #fff;
+    }
+
+    .card + .card {
+      margin-top: 20px;
+    }
+
+    .card h2 {
+      margin: 0 0 17px;
+      color: #111827;
+      font-size: 19px;
+    }
+
+    .info-list {
+      display: grid;
+      gap: 13px;
+    }
+
+    .info-item {
+      display: grid;
+      grid-template-columns: 105px 1fr;
+      gap: 10px;
+      font-size: 13px;
+    }
+
+    .info-label {
+      color: #6b7280;
+    }
+
+    .info-value {
+      color: #111827;
+      word-break: break-word;
+    }
+
+    .services-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .service-item {
+      padding: 14px;
+      border: 1px solid #eceef1;
+      border-radius: 10px;
+    }
+
+    .service-item-title {
+      color: #111827;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .service-item-description {
+      margin-top: 5px;
+      color: #6b7280;
+      line-height: 1.5;
+      font-size: 12px;
+    }
+
+    .service-item-price {
+      margin-top: 8px;
+      color: #111827;
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .loading,
+    .empty {
+      padding: 60px 20px;
+      text-align: center;
+      color: #6b7280;
+    }
+
+    .error-box {
+      padding: 30px;
+      border-radius: 14px;
+      background: #fff;
+      text-align: center;
+    }
+
+    .error-box h1 {
+      color: #111827;
+    }
+
+    .enquiry-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(0,0,0,.45);
+    }
+
+    .enquiry-overlay.show {
+      display: flex;
+    }
+
+    .enquiry-card {
+      width: 100%;
+      max-width: 520px;
+      padding: 25px;
+      border-radius: 16px;
+      background: #fff;
+    }
+
+    .enquiry-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+      margin-bottom: 18px;
+    }
+
+    .enquiry-head h2 {
+      margin: 0;
+      color: #111827;
+      font-size: 20px;
+    }
+
+    .close-button {
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      font-size: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      color: #374151;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 45px;
+      padding: 10px 12px;
+      border: 1px solid #d9dde3;
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    .form-group textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    @media (max-width: 750px) {
+
+      .business-hero {
+        grid-template-columns: 1fr;
+      }
+
+      .business-image {
+        max-width: 280px;
+      }
+
+      .business-title {
+        font-size: 28px;
+      }
+
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <main class="detail-page">
+
+    <div
+      id="loading"
+      class="loading"
+    >
+      Loading business...
+    </div>
+
+
+    <div
+      id="error"
+      class="error-box"
+      hidden
+    >
+
+      <h1>
+        Business Not Found
+      </h1>
+
+      <p>
+        The requested business could not be found.
+      </p>
+
+      <a
+        class="action-button"
+        href="index.html"
+      >
+        Explore UBnux
+      </a>
+
+    </div>
+
+
+    <section
+      id="businessContent"
+      hidden
+    >
+
+      <nav class="breadcrumb">
+
+        <a href="index.html">
+          UBnux
+        </a>
+
+        <span>›</span>
+
+        <a
+          id="districtLink"
+          href="index.html"
+        >
+          District
+        </a>
+
+        <span>›</span>
+
+        <span id="breadcrumbBusiness">
+          Business
+        </span>
+
+      </nav>
+
+
+      <section class="business-hero">
+
+        <div class="business-image">
+
+          <img
+            id="businessImage"
+            src=""
+            alt="Business"
+          >
+
+        </div>
+
+
+        <div class="business-info">
+
+          <div
+            id="businessBadges"
+            class="business-badges"
+          ></div>
+
+
+          <h1
+            id="businessName"
+            class="business-title"
+          >
+            Business
+          </h1>
+
+
+          <div
+            id="businessCategory"
+            class="business-category"
+          ></div>
+
+
+          <div
+            id="businessRating"
+            class="rating"
+          ></div>
+
+
+          <div
+            id="businessDescription"
+            class="business-description"
+          ></div>
+
+
+          <div class="action-row">
+
+            <a
+              id="callButton"
+              class="action-button"
+              href="#"
+              hidden
+            >
+              Call
+            </a>
+
+            <a
+              id="whatsappButton"
+              class="action-button"
+              href="#"
+              target="_blank"
+              rel="noopener"
+              hidden
+            >
+              WhatsApp
+            </a>
+
+            <a
+              id="websiteButton"
+              class="action-button secondary"
+              href="#"
+              target="_blank"
+              rel="noopener"
+              hidden
+            >
+              Website
+            </a>
+
+            <button
+              id="enquiryButton"
+              class="action-button secondary"
+              type="button"
+            >
+              Send Enquiry
+            </button>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <div class="content-grid">
+
+
+        <div>
+
+          <section class="card">
+
+            <h2>
+              About This Business
+            </h2>
+
+            <div
+              id="longDescription"
+              class="business-description"
+            ></div>
+
+          </section>
+
+
+          <section class="card">
+
+            <h2>
+              Products & Services
+            </h2>
+
+            <div
+              id="servicesList"
+              class="services-list"
+            ></div>
+
+          </section>
+
+        </div>
+
+
+        <aside>
+
+          <section class="card">
+
+            <h2>
+              Business Information
+            </h2>
+
+            <div class="info-list">
+
+              <div class="info-item">
+
+                <div class="info-label">
+                  Category
+                </div>
+
+                <div
+                  id="infoCategory"
+                  class="info-value"
+                ></div>
+
+              </div>
+
+
+              <div class="info-item">
+
+                <div class="info-label">
+                  Location
+                </div>
+
+                <div
+                  id="infoLocation"
+                  class="info-value"
+                ></div>
+
+              </div>
+
+
+              <div class="info-item">
+
+                <div class="info-label">
+                  Address
+                </div>
+
+                <div
+                  id="infoAddress"
+                  class="info-value"
+                ></div>
+
+              </div>
+
+
+              <div class="info-item">
+
+                <div class="info-label">
+                  Pincode
+                </div>
+
+                <div
+                  id="infoPincode"
+                  class="info-value"
+                ></div>
+
+              </div>
+
+
+              <div class="info-item">
+
+                <div class="info-label">
+                  Established
+                </div>
+
+                <div
+                  id="infoEstablished"
+                  class="info-value"
+                ></div>
+
+              </div>
+
+            </div>
+
+          </section>
+
+        </aside>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <div
+    id="enquiryOverlay"
+    class="enquiry-overlay"
+  >
+
+    <div class="enquiry-card">
+
+      <div class="enquiry-head">
+
+        <h2>
+          Send Enquiry
+        </h2>
+
+        <button
+          id="closeEnquiry"
+          class="close-button"
+          type="button"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <form
+        id="enquiryForm"
+      >
+
+        <div class="form-group">
+
+          <label for="enquiryName">
+            Your Name
+          </label>
+
+          <input
+            id="enquiryName"
+            required
+          >
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="enquiryMobile">
+            Mobile Number
+          </label>
+
+          <input
+            id="enquiryMobile"
+            type="tel"
+            required
+          >
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="enquiryMessage">
+            Message
+          </label>
+
+          <textarea
+            id="enquiryMessage"
+            required
+          ></textarea>
+
+        </div>
+
+
+        <button
+          id="submitEnquiry"
+          class="action-button"
+          type="submit"
+        >
+          Submit Enquiry
+        </button>
+
+      </form>
+
+    </div>
+
+  </div>
+
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/state.js"></script>
+  <script src="assets/js/cache.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/utils.js"></script>
+
+
+  <script>
+
+    (function () {
+
+      "use strict";
+
+
+      const App =
+        window.UBnux ||
+        window.ZilaBiz ||
+        {};
+
+
+      function text(value) {
+
+        return String(
+          value == null
+            ? ""
+            : value
+        ).trim();
+
+      }
+
+
+      function queryParams() {
+
+        return new URLSearchParams(
+          location.search
+        );
+
+      }
+
+
+      const params =
+        queryParams();
+
+
+      const businessId =
+        text(
+          params.get("businessId") ||
+          params.get("id")
+        );
+
+
+      const businessSlug =
+        text(
+          params.get("slug")
+        );
+
+
+      function value(
+        object,
+        keys,
+        fallback
+      ) {
+
+        for (
+          const key of keys
+        ) {
+
+          if (
+            object &&
+            object[key] !== undefined &&
+            object[key] !== null &&
+            text(object[key])
+          ) {
+
+            return object[key];
+
+          }
+
+        }
+
+        return fallback || "";
+
+      }
+
+
+      function safeImage(
+        value
+      ) {
+
+        const url =
+          text(value);
+
+
+        if (
+          /^https?:\/\//i.test(url)
+        ) {
+
+          return url;
+
+        }
+
+
+        return "data:image/svg+xml," +
+          encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg"
+              width="600"
+              height="600">
+              <rect width="100%" height="100%"
+                fill="#f3f4f6"/>
+              <text x="50%" y="50%"
+                dominant-baseline="middle"
+                text-anchor="middle"
+                font-family="Arial"
+                font-size="36"
+                fill="#9ca3af">
+                UBnux
+              </text>
+            </svg>
+          `);
+
+      }
+
+
+      function slugify(
+        value
+      ) {
+
+        return text(value)
+          .toLowerCase()
+          .replace(
+            /[^a-z0-9]+/g,
+            "-"
+          )
+          .replace(
+            /^-+|-+$/g,
+            ""
+          );
+
+      }
+
+
+      async function loadBusiness() {
+
+        if (
+          !App.api ||
+          typeof App.api.call !==
+            "function"
+        ) {
+
+          showError();
+
+          return;
+
+        }
+
+
+        if (
+          !businessId &&
+          !businessSlug
+        ) {
+
+          showError();
+
+          return;
+
+        }
+
+
+        try {
+
+          const response =
+            await App.api.call(
+              "getseobusiness",
+              {
+                businessId:
+                  businessId,
+
+                id:
+                  businessId,
+
+                slug:
+                  businessSlug
+              },
+              {
+                retries: 1
+              }
+            );
+
+
+          if (
+            !response ||
+            !response.success
+          ) {
+
+            throw new Error(
+              response &&
+              response.message
+                ? response.message
+                : "Business not found."
+            );
+
+          }
+
+
+          const data =
+            response.data &&
+            (
+              response.data.business ||
+              response.data
+            );
+
+
+          if (!data) {
+
+            throw new Error(
+              "Business not found."
+            );
+
+          }
+
+
+          renderBusiness(
+            data
+          );
+
+
+        } catch (error) {
+
+          console.error(
+            "Business page error:",
+            error
+          );
+
+
+          showError();
+
+        }
+
+      }
+
+
+      function renderBusiness(
+        business
+      ) {
+
+        const name =
+          text(
+            value(
+              business,
+              [
+                "BusinessName",
+                "businessName",
+                "Name",
+                "name"
+              ],
+              "Business"
+            )
+          );
+
+
+        const category =
+          text(
+            value(
+              business,
+              [
+                "CategoryName",
+                "Category",
+                "category"
+              ],
+              ""
+            )
+          );
+
+
+        const district =
+          text(
+            value(
+              business,
+              [
+                "DistrictName",
+                "District",
+                "district"
+              ],
+              ""
+            )
+          );
+
+
+        const area =
+          text(
+            value(
+              business,
+              [
+                "Area",
+                "Locality"
+              ],
+              ""
+            )
+          );
+
+
+        const address =
+          text(
+            value(
+              business,
+              [
+                "Address",
+                "address"
+              ],
+              ""
+            )
+          );
+
+
+        const description =
+          text(
+            value(
+              business,
+              [
+                "ShortDescription",
+                "Description",
+                "description"
+              ],
+              ""
+            )
+          );
+
+
+        const longDescription =
+          text(
+            value(
+              business,
+              [
+                "LongDescription",
+                "longDescription",
+                "Description",
+                "description"
+              ],
+              description
+            )
+          );
+
+
+        const image =
+          safeImage(
+            value(
+              business,
+              [
+                "ImageURL",
+                "ImageUrl",
+                "Image",
+                "image",
+                "LogoURL",
+                "Logo"
+              ],
+              ""
+            )
+          );
+
+
+        const mobile =
+          text(
+            value(
+              business,
+              [
+                "Mobile",
+                "Phone",
+                "Contact"
+              ],
+              ""
+            )
+          );
+
+
+        const whatsapp =
+          text(
+            value(
+              business,
+              [
+                "WhatsApp",
+                "Whatsapp",
+                "WhatsAppNumber"
+              ],
+              mobile
+            )
+          );
+
+
+        const website =
+          text(
+            value(
+              business,
+              [
+                "WebsiteURL",
+                "Website",
+                "website"
+              ],
+              ""
+            )
+          );
+
+
+        const rating =
+          value(
+            business,
+            [
+              "Rating",
+              "rating"
+            ],
+            ""
+          );
+
+
+        const reviewCount =
+          value(
+            business,
+            [
+              "ReviewCount",
+              "Reviews",
+              "reviewCount"
+            ],
+            0
+          );
+
+
+        const established =
+          value(
+            business,
+            [
+              "EstablishedYear",
+              "Established"
+            ],
+            ""
+          );
+
+
+        document.title =
+          text(
+            value(
+              business,
+              [
+                "SEO_Title",
+                "SEOTitle"
+              ],
+              name + " | UBnux"
+            )
+          );
+
+
+        document.getElementById(
+          "metaDescription"
+        ).setAttribute(
+          "content",
+          text(
+            value(
+              business,
+              [
+                "SEO_Description",
+                "SEODescription"
+              ],
+              description ||
+              "Find " +
+              name +
+              " on UBnux."
+            )
+          )
+        );
+
+
+        document.getElementById(
+          "ogTitle"
+        ).setAttribute(
+          "content",
+          document.title
+        );
+
+
+        document.getElementById(
+          "ogDescription"
+        ).setAttribute(
+          "content",
+          description
+        );
+
+
+        const canonicalPath =
+          value(
+            business,
+            [
+              "CanonicalURL",
+              "canonicalURL",
+              "canonicalPath"
+            ],
+            ""
+          );
+
+
+        const canonical =
+          canonicalPath ||
+          (
+            location.origin +
+            location.pathname +
+            "?id=" +
+            encodeURIComponent(
+              value(
+                business,
+                [
+                  "BusinessID",
+                  "BusinessId",
+                  "businessId",
+                  "ID",
+                  "Id"
+                ],
+                businessId
+              )
+            )
+          );
+
+
+        document.getElementById(
+          "canonicalLink"
+        ).href =
+          canonical;
+
+
+        document.getElementById(
+          "businessImage"
+        ).src =
+          image;
+
+
+        document.getElementById(
+          "businessImage"
+        ).alt =
+          name;
+
+
+        document.getElementById(
+          "businessName"
+        ).textContent =
+          name;
+
+
+        document.getElementById(
+          "breadcrumbBusiness"
+        ).textContent =
+          name;
+
+
+        document.getElementById(
+          "businessCategory"
+        ).textContent =
+          category;
+
+
+        document.getElementById(
+          "businessDescription"
+        ).textContent =
+          description;
+
+
+        document.getElementById(
+          "longDescription"
+        ).textContent =
+          longDescription ||
+          "Business information is available on UBnux.";
+
+
+        document.getElementById(
+          "infoCategory"
+        ).textContent =
+          category || "—";
+
+
+        document.getElementById(
+          "infoLocation"
+        ).textContent =
+          [area,district]
+            .filter(Boolean)
+            .join(", ") ||
+          "—";
+
+
+        document.getElementById(
+          "infoAddress"
+        ).textContent =
+          address || "—";
+
+
+        document.getElementById(
+          "infoPincode"
+        ).textContent =
+          value(
+            business,
+            [
+              "Pincode",
+              "PinCode",
+              "PIN"
+            ],
+            "—"
+          );
+
+
+        document.getElementById(
+          "infoEstablished"
+        ).textContent =
+          established || "—";
+
+
+        document.getElementById(
+          "businessRating"
+        ).textContent =
+          rating
+            ? "★ " +
+              rating +
+              (
+                reviewCount
+                  ? " (" +
+                    reviewCount +
+                    " reviews)"
+                  : ""
+              )
+            : "No rating available";
+
+
+        if (mobile) {
+
+          const call =
+            document.getElementById(
+              "callButton"
+            );
+
+
+          call.href =
+            "tel:" +
+            mobile;
+
+          call.hidden =
+            false;
+
+        }
+
+
+        if (whatsapp) {
+
+          const wa =
+            document.getElementById(
+              "whatsappButton"
+            );
+
+
+          const clean =
+            whatsapp.replace(
+              /\D/g,
+              ""
+            );
+
+
+          wa.href =
+            "https://wa.me/" +
+            (
+              clean.length === 10
+                ? "91" + clean
+                : clean
+            );
+
+
+          wa.hidden =
+            false;
+
+        }
+
+
+        if (website) {
+
+          const websiteButton =
+            document.getElementById(
+              "websiteButton"
+            );
+
+
+          websiteButton.href =
+            /^https?:\/\//i.test(
+              website
+            )
+              ? website
+              : "https://" +
+                website;
+
+
+          websiteButton.hidden =
+            false;
+
+        }
+
+
+        const badges =
+          document.getElementById(
+            "businessBadges"
+          );
+
+
+        const featured =
+          value(
+            business,
+            [
+              "Featured",
+              "IsFeatured"
+            ],
+            ""
+          );
+
+
+        const verified =
+          value(
+            business,
+            [
+              "Verified",
+              "IsVerified"
+            ],
+            ""
+          );
+
+
+        let badgeHTML =
+          "";
+
+
+        if (
+          String(featured)
+            .toLowerCase() ===
+          "true" ||
+          String(featured) === "1" ||
+          String(featured)
+            .toLowerCase() ===
+          "yes"
+        ) {
+
+          badgeHTML +=
+            '<span class="badge featured">Featured</span>';
+
+        }
+
+
+        if (
+          String(verified)
+            .toLowerCase() ===
+          "true" ||
+          String(verified) === "1" ||
+          String(verified)
+            .toLowerCase() ===
+          "yes"
+        ) {
+
+          badgeHTML +=
+            '<span class="badge verified">✓ Verified</span>';
+
+        }
+
+
+        badges.innerHTML =
+          badgeHTML;
+
+
+        if (district) {
+
+          const districtLink =
+            document.getElementById(
+              "districtLink"
+            );
+
+
+          districtLink.textContent =
+            district;
+
+
+          districtLink.href =
+            "district.html?slug=" +
+            encodeURIComponent(
+              slugify(district)
+            );
+
+        }
+
+
+        renderServices(
+          business.Services ||
+          business.services ||
+          business.Products ||
+          business.products ||
+          []
+        );
+
+
+        document.getElementById(
+          "loading"
+        ).hidden =
+          true;
+
+
+        document.getElementById(
+          "businessContent"
+        ).hidden =
+          false;
+
+
+        addStructuredData(
+          business,
+          name,
+          description,
+          image
+        );
+
+      }
+
+
+      function renderServices(
+        services
+      ) {
+
+        const container =
+          document.getElementById(
+            "servicesList"
+          );
+
+
+        let list =
+          Array.isArray(services)
+            ? services
+            : [];
+
+
+        if (
+          !list.length &&
+          typeof services ===
+            "string"
+        ) {
+
+          list =
+            services
+              .split(",")
+              .map(
+                item => ({
+                  Name:
+                    text(item)
+                })
+              )
+              .filter(
+                item => item.Name
+              );
+
+        }
+
+
+        if (!list.length) {
+
+          container.innerHTML =
+            `
+              <div class="empty">
+                Products and services information is not available yet.
+              </div>
+            `;
+
+          return;
+
+        }
+
+
+        container.innerHTML =
+          list
+            .map(
+              item => {
+
+                const name =
+                  text(
+                    value(
+                      item,
+                      [
+                        "Name",
+                        "ServiceName",
+                        "ProductName",
+                        "name"
+                      ],
+                      "Product / Service"
+                    )
+                  );
+
+
+                const description =
+                  text(
+                    value(
+                      item,
+                      [
+                        "Description",
+                        "description"
+                      ],
+                      ""
+                    )
+                  );
+
+
+                const price =
+                  text(
+                    value(
+                      item,
+                      [
+                        "Price",
+                        "price"
+                      ],
+                      ""
+                    )
+                  );
+
+
+                return `
+                  <article class="service-item">
+
+                    <div class="service-item-title">
+                      ${name}
+                    </div>
+
+                    ${
+                      description
+                        ? `
+                          <div class="service-item-description">
+                            ${description}
+                          </div>
+                        `
+                        : ""
+                    }
+
+                    ${
+                      price
+                        ? `
+                          <div class="service-item-price">
+                            ₹${price}
+                          </div>
+                        `
+                        : ""
+                    }
+
+                  </article>
+                `;
+
+              }
+            )
+            .join("");
+
+      }
+
+
+      function addStructuredData(
+        business,
+        name,
+        description,
+        image
+      ) {
+
+        const schema = {
+
+          "@context":
+            "https://schema.org",
+
+          "@type":
+            "LocalBusiness",
+
+          name:
+            name,
+
+          description:
+            description,
+
+          image:
+            image,
+
+          url:
+            location.href
+
+        };
+
+
+        const mobile =
+          text(
+            value(
+              business,
+              [
+                "Mobile",
+                "Phone"
+              ],
+              ""
+            )
+          );
+
+
+        if (mobile) {
+
+          schema.telephone =
+            mobile;
+
+        }
+
+
+        const address =
+          text(
+            value(
+              business,
+              [
+                "Address"
+              ],
+              ""
+            )
+          );
+
+
+        const district =
+          text(
+            value(
+              business,
+              [
+                "DistrictName",
+                "District"
+              ],
+              ""
+            )
+          );
+
+
+        if (
+          address ||
+          district
+        ) {
+
+          schema.address = {
+
+            "@type":
+              "PostalAddress",
+
+            streetAddress:
+              address,
+
+            addressLocality:
+              district,
+
+            addressCountry:
+              "IN"
+
+          };
+
+        }
+
+
+        const script =
+          document.createElement(
+            "script"
+          );
+
+
+        script.type =
+          "application/ld+json";
+
+
+        script.textContent =
+          JSON.stringify(
+            schema
+          );
+
+
+        document.head.appendChild(
+          script
+        );
+
+      }
+
+
+      function showError() {
+
+        document.getElementById(
+          "loading"
+        ).hidden =
+          true;
+
+
+        document.getElementById(
+          "error"
+        ).hidden =
+          false;
+
+      }
+
+
+      function openEnquiry() {
+
+        document.getElementById(
+          "enquiryOverlay"
+        ).classList.add(
+          "show"
+        );
+
+      }
+
+
+      function closeEnquiry() {
+
+        document.getElementById(
+          "enquiryOverlay"
+        ).classList.remove(
+          "show"
+        );
+
+      }
+
+
+      document.getElementById(
+        "enquiryButton"
+      ).addEventListener(
+        "click",
+        openEnquiry
+      );
+
+
+      document.getElementById(
+        "closeEnquiry"
+      ).addEventListener(
+        "click",
+        closeEnquiry
+      );
+
+
+      document.getElementById(
+        "enquiryOverlay"
+      ).addEventListener(
+        "click",
+        function (event) {
+
+          if (
+            event.target ===
+            this
+          ) {
+
+            closeEnquiry();
+
+          }
+
+        }
+      );
+
+
+      document.getElementById(
+        "enquiryForm"
+      ).addEventListener(
+        "submit",
+        async function (event) {
+
+          event.preventDefault();
+
+
+          const button =
+            document.getElementById(
+              "submitEnquiry"
+            );
+
+
+          button.disabled =
+            true;
+
+          button.textContent =
+            "Submitting...";
+
+
+          try {
+
+            const response =
+              await App.api.submitEnquiry(
+                {
+                  businessId:
+                    businessId,
+
+                  name:
+                    text(
+                      document.getElementById(
+                        "enquiryName"
+                      ).value
+                    ),
+
+                  mobile:
+                    text(
+                      document.getElementById(
+                        "enquiryMobile"
+                      ).value
+                    ),
+
+                  message:
+                    text(
+                      document.getElementById(
+                        "enquiryMessage"
+                      ).value
+                    )
+                }
+              );
+
+
+            if (
+              !response ||
+              !response.success
+            ) {
+
+              throw new Error(
+                response &&
+                response.message
+                  ? response.message
+                  : "Unable to submit enquiry."
+              );
+
+            }
+
+
+            alert(
+              response.message ||
+              "Your enquiry has been submitted successfully."
+            );
+
+
+            document.getElementById(
+              "enquiryForm"
+            ).reset();
+
+
+            closeEnquiry();
+
+
+          } catch (error) {
+
+            alert(
+              error.message ||
+              "Unable to submit enquiry."
+            );
+
+          } finally {
+
+            button.disabled =
+              false;
+
+            button.textContent =
+              "Submit Enquiry";
+
+          }
+
+        }
+      );
+
+
+      loadBusiness();
+
+    })();
+
+  </script>
+
+</body>
+
+</html>

@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Category | UBnux</title>
+
+  <meta
+    id="metaDescription"
+    name="description"
+    content="Find local businesses by category on UBnux."
+  >
+
+  <meta
+    name="robots"
+    content="index,follow"
+  >
+
+  <link
+    id="canonicalLink"
+    rel="canonical"
+    href=""
+  >
+
+  <link
+    rel="stylesheet"
+    href="assets/css/style.css"
+  >
+
+  <style>
+
+    body {
+      margin: 0;
+      background: #f6f7f9;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    .page {
+      max-width: 1180px;
+      margin: auto;
+      padding: 30px 18px 70px;
+    }
+
+    .hero {
+      padding: 30px;
+      margin-bottom: 20px;
+      border-radius: 18px;
+      background: #111827;
+      color: #fff;
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: 34px;
+    }
+
+    .hero p {
+      max-width: 750px;
+      margin: 0;
+      color: rgba(255,255,255,.75);
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 20px;
+    }
+
+    .filter-card {
+      align-self: start;
+      padding: 20px;
+      border: 1px solid #e5e7eb;
+      border-radius: 15px;
+      background: #fff;
+    }
+
+    .filter-card h2 {
+      margin: 0 0 15px;
+      color: #111827;
+      font-size: 16px;
+    }
+
+    .district-link {
+      display: block;
+      padding: 9px 0;
+      border-bottom: 1px solid #f0f0f0;
+      color: #4b5563;
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    .district-link:hover {
+      color: #111827;
+    }
+
+    .business-grid {
+      display: grid;
+      grid-template-columns:
+        repeat(3,minmax(0,1fr));
+      gap: 16px;
+    }
+
+    .business-card {
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      background: #fff;
+    }
+
+    .business-card-image {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      background: #f3f4f6;
+    }
+
+    .business-card-body {
+      padding: 17px;
+    }
+
+    .business-card h3 {
+      margin: 0 0 7px;
+      color: #111827;
+      font-size: 16px;
+    }
+
+    .business-card-category {
+      color: #6b7280;
+      font-size: 12px;
+    }
+
+    .business-card-location {
+      margin-top: 8px;
+      color: #4b5563;
+      font-size: 12px;
+    }
+
+    .business-card-rating {
+      margin-top: 8px;
+      color: #111827;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .view {
+      display: inline-flex;
+      margin-top: 14px;
+      min-height: 36px;
+      padding: 0 12px;
+      align-items: center;
+      border-radius: 8px;
+      background: #111827;
+      color: #fff;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .empty,
+    .loading {
+      grid-column: 1 / -1;
+      padding: 55px 20px;
+      text-align: center;
+      color: #6b7280;
+    }
+
+    @media (max-width: 950px) {
+
+      .business-grid {
+        grid-template-columns:
+          repeat(2,minmax(0,1fr));
+      }
+
+    }
+
+    @media (max-width: 700px) {
+
+      .content {
+        grid-template-columns: 1fr;
+      }
+
+      .business-grid {
+        grid-template-columns: 1fr;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <main class="page">
+
+    <section class="hero">
+
+      <h1 id="categoryName">
+        Category
+      </h1>
+
+      <p id="categoryDescription">
+        Find local businesses and services.
+      </p>
+
+    </section>
+
+
+    <div class="content">
+
+      <aside class="filter-card">
+
+        <h2>
+          Browse Districts
+        </h2>
+
+        <div id="districtList">
+          Loading...
+        </div>
+
+      </aside>
+
+
+      <section>
+
+        <div
+          id="businessGrid"
+          class="business-grid"
+        >
+
+          <div class="loading">
+            Loading businesses...
+          </div>
+
+        </div>
+
+      </section>
+
+    </div>
+
+  </main>
+
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/state.js"></script>
+  <script src="assets/js/cache.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/filters.js"></script>
+  <script src="assets/js/utils.js"></script>
+
+
+  <script>
+
+    (function () {
+
+      "use strict";
+
+
+      const App =
+        window.UBnux ||
+        window.ZilaBiz ||
+        {};
+
+
+      const params =
+        new URLSearchParams(
+          location.search
+        );
+
+
+      const categoryId =
+        params.get("id") ||
+        params.get("categoryId") ||
+        "";
+
+
+      const categorySlug =
+        params.get("slug") ||
+        "";
+
+
+      function text(value) {
+
+        return String(
+          value == null
+            ? ""
+            : value
+        ).trim();
+
+      }
+
+
+      function getValue(
+        object,
+        keys,
+        fallback
+      ) {
+
+        for (
+          const key of keys
+        ) {
+
+          if (
+            object &&
+            object[key] !== undefined &&
+            object[key] !== null &&
+            text(object[key])
+          ) {
+
+            return object[key];
+
+          }
+
+        }
+
+        return fallback || "";
+
+      }
+
+
+      function slugify(
+        value
+      ) {
+
+        return text(value)
+          .toLowerCase()
+          .replace(
+            /[^a-z0-9]+/g,
+            "-"
+          )
+          .replace(
+            /^-+|-+$/g,
+            ""
+          );
+
+      }
+
+
+      function image(
+        value
+      ) {
+
+        if (
+          /^https?:\/\//i.test(
+            text(value)
+          )
+        ) {
+
+          return value;
+
+        }
+
+
+        return "data:image/svg+xml," +
+          encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg"
+              width="600"
+              height="340">
+              <rect width="100%" height="100%"
+                fill="#f3f4f6"/>
+              <text x="50%" y="50%"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                font-family="Arial"
+                font-size="32"
+                fill="#9ca3af">
+                UBnux
+              </text>
+            </svg>
+          `);
+
+      }
+
+
+      async function load() {
+
+        try {
+
+          const response =
+            await App.api.call(
+              "getseocategory",
+              {
+                categoryId:
+                  categoryId,
+
+                id:
+                  categoryId,
+
+                slug:
+                  categorySlug
+              },
+              {
+                retries: 1
+              }
+            );
+
+
+          if (
+            !response ||
+            !response.success
+          ) {
+
+            throw new Error(
+              "Category not found."
+            );
+
+          }
+
+
+          const category =
+            response.data &&
+            (
+              response.data.category ||
+              response.data
+            );
+
+
+          if (!category) {
+
+            throw new Error(
+              "Category not found."
+            );
+
+          }
+
+
+          renderCategory(
+            category
+          );
+
+
+        } catch (error) {
+
+          console.error(
+            error
+          );
+
+
+          document.getElementById(
+            "categoryName"
+          ).textContent =
+            "Category Not Found";
+
+
+          document.getElementById(
+            "categoryDescription"
+          ).textContent =
+            "The requested category could not be found.";
+
+        }
+
+      }
+
+
+      function renderCategory(
+        category
+      ) {
+
+        const name =
+          text(
+            getValue(
+              category,
+              [
+                "CategoryName",
+                "Name",
+                "name"
+              ],
+              "Category"
+            )
+          );
+
+
+        const description =
+          text(
+            getValue(
+              category,
+              [
+                "SEO_Description",
+                "SEODescription",
+                "Description",
+                "description"
+              ],
+              "Find local businesses and services in this category."
+            )
+          );
+
+
+        document.title =
+          text(
+            getValue(
+              category,
+              [
+                "SEO_Title",
+                "SEOTitle"
+              ],
+              name + " Businesses | UBnux"
+            )
+          );
+
+
+        document.getElementById(
+          "metaDescription"
+        ).content =
+          description;
+
+
+        document.getElementById(
+          "canonicalLink"
+        ).href =
+          location.href;
+
+
+        document.getElementById(
+          "categoryName"
+        ).textContent =
+          name;
+
+
+        document.getElementById(
+          "categoryDescription"
+        ).textContent =
+          description;
+
+
+        const businesses =
+          Array.isArray(
+            category.businesses
+          )
+            ? category.businesses
+            : Array.isArray(
+                category.Businesses
+              )
+            ? category.Businesses
+            : [];
+
+
+        renderBusinesses(
+          businesses
+        );
+
+
+        loadDistricts();
+
+      }
+
+
+      function renderBusinesses(
+        businesses
+      ) {
+
+        const grid =
+          document.getElementById(
+            "businessGrid"
+          );
+
+
+        if (!businesses.length) {
+
+          grid.innerHTML =
+            `
+              <div class="empty">
+                No businesses found in this category yet.
+              </div>
+            `;
+
+          return;
+
+        }
+
+
+        grid.innerHTML =
+          businesses
+            .map(
+              business => {
+
+                const id =
+                  getValue(
+                    business,
+                    [
+                      "BusinessID",
+                      "BusinessId",
+                      "businessId",
+                      "ID",
+                      "Id"
+                    ],
+                    ""
+                  );
+
+
+                const name =
+                  getValue(
+                    business,
+                    [
+                      "BusinessName",
+                      "businessName",
+                      "Name",
+                      "name"
+                    ],
+                    "Business"
+                  );
+
+
+                const district =
+                  getValue(
+                    business,
+                    [
+                      "DistrictName",
+                      "District"
+                    ],
+                    ""
+                  );
+
+
+                const area =
+                  getValue(
+                    business,
+                    [
+                      "Area",
+                      "Locality"
+                    ],
+                    ""
+                  );
+
+
+                const rating =
+                  getValue(
+                    business,
+                    [
+                      "Rating",
+                      "rating"
+                    ],
+                    ""
+                  );
+
+
+                return `
+                  <article class="business-card">
+
+                    <img
+                      class="business-card-image"
+                      src="${image(
+                        getValue(
+                          business,
+                          [
+                            "ImageURL",
+                            "Image",
+                            "LogoURL",
+                            "Logo"
+                          ],
+                          ""
+                        )
+                      )}"
+                      alt="${name}"
+                      loading="lazy"
+                    >
+
+                    <div class="business-card-body">
+
+                      <h3>
+                        ${name}
+                      </h3>
+
+                      <div class="business-card-category">
+                        ${getValue(
+                          business,
+                          [
+                            "CategoryName",
+                            "Category"
+                          ],
+                          ""
+                        )}
+                      </div>
+
+                      <div class="business-card-location">
+                        ${[
+                          area,
+                          district
+                        ]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </div>
+
+                      ${
+                        rating
+                          ? `
+                            <div class="business-card-rating">
+                              ★ ${rating}
+                            </div>
+                          `
+                          : ""
+                      }
+
+                      <a
+                        class="view"
+                        href="business-details.html?id=${encodeURIComponent(id)}"
+                      >
+                        View Business
+                      </a>
+
+                    </div>
+
+                  </article>
+                `;
+
+              }
+            )
+            .join("");
+
+      }
+
+
+      async function loadDistricts() {
+
+        const container =
+          document.getElementById(
+            "districtList"
+          );
+
+
+        try {
+
+          const response =
+            await App.api.getInitialDataFast();
+
+
+          const districts =
+            response &&
+            response.data &&
+            Array.isArray(
+              response.data.districts
+            )
+              ? response.data.districts
+              : [];
+
+
+          if (!districts.length) {
+
+            container.textContent =
+              "No districts available.";
+
+            return;
+
+          }
+
+
+          container.innerHTML =
+            districts
+              .map(
+                district => {
+
+                  const name =
+                    getValue(
+                      district,
+                      [
+                        "DistrictName",
+                        "Name",
+                        "name"
+                      ],
+                      "District"
+                    );
+
+
+                  const id =
+                    getValue(
+                      district,
+                      [
+                        "DistrictID",
+                        "DistrictId",
+                        "ID",
+                        "Id"
+                      ],
+                      ""
+                    );
+
+
+                  return `
+                    <a
+                      class="district-link"
+                      href="district.html?id=${encodeURIComponent(id)}"
+                    >
+                      ${name}
+                    </a>
+                  `;
+
+                }
+              )
+              .join("");
+
+        } catch (error) {
+
+          container.textContent =
+            "Unable to load districts.";
+
+        }
+
+      }
+
+
+      load();
+
+    })();
+
+  </script>
+
+</body>
+
+</html>

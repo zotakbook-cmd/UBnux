@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>District Businesses | UBnux</title>
+
+  <meta
+    id="metaDescription"
+    name="description"
+    content="Discover local businesses and services on UBnux."
+  >
+
+  <meta
+    name="robots"
+    content="index,follow"
+  >
+
+  <link
+    rel="stylesheet"
+    href="assets/css/style.css"
+  >
+
+  <style>
+
+    body {
+      margin: 0;
+      background: #f6f7f9;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    .page {
+      max-width: 1180px;
+      margin: auto;
+      padding: 30px 18px 70px;
+    }
+
+    .hero {
+      padding: 32px;
+      margin-bottom: 20px;
+      border-radius: 18px;
+      background: #111827;
+      color: #fff;
+    }
+
+    .hero h1 {
+      margin: 0 0 9px;
+      font-size: 34px;
+    }
+
+    .hero p {
+      max-width: 750px;
+      margin: 0;
+      color: rgba(255,255,255,.75);
+      line-height: 1.7;
+    }
+
+    .categories {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-bottom: 20px;
+    }
+
+    .category-link {
+      padding: 9px 13px;
+      border: 1px solid #e5e7eb;
+      border-radius: 30px;
+      background: #fff;
+      color: #374151;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .business-grid {
+      display: grid;
+      grid-template-columns:
+        repeat(3,minmax(0,1fr));
+      gap: 16px;
+    }
+
+    .business-card {
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      background: #fff;
+    }
+
+    .business-image {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      background: #f3f4f6;
+    }
+
+    .business-body {
+      padding: 17px;
+    }
+
+    .business-name {
+      margin: 0 0 6px;
+      color: #111827;
+      font-size: 16px;
+    }
+
+    .business-category {
+      color: #6b7280;
+      font-size: 12px;
+    }
+
+    .business-location {
+      margin-top: 7px;
+      color: #4b5563;
+      font-size: 12px;
+    }
+
+    .business-rating {
+      margin-top: 7px;
+      color: #111827;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .view {
+      display: inline-flex;
+      margin-top: 14px;
+      min-height: 36px;
+      padding: 0 12px;
+      align-items: center;
+      border-radius: 8px;
+      background: #111827;
+      color: #fff;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .empty {
+      padding: 60px 20px;
+      text-align: center;
+      color: #6b7280;
+    }
+
+    @media (max-width: 900px) {
+
+      .business-grid {
+        grid-template-columns:
+          repeat(2,minmax(0,1fr));
+      }
+
+    }
+
+    @media (max-width: 600px) {
+
+      .business-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        padding: 25px 20px;
+      }
+
+      .hero h1 {
+        font-size: 28px;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <main class="page">
+
+    <section class="hero">
+
+      <h1 id="districtName">
+        District Businesses
+      </h1>
+
+      <p id="districtDescription">
+        Discover local businesses, products and services.
+      </p>
+
+    </section>
+
+
+    <section
+      id="categories"
+      class="categories"
+    ></section>
+
+
+    <section
+      id="businessGrid"
+      class="business-grid"
+    >
+
+      <div class="empty">
+        Loading businesses...
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/state.js"></script>
+  <script src="assets/js/cache.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/filters.js"></script>
+  <script src="assets/js/utils.js"></script>
+
+
+  <script>
+
+    (function () {
+
+      "use strict";
+
+
+      const App =
+        window.UBnux ||
+        window.ZilaBiz ||
+        {};
+
+
+      const params =
+        new URLSearchParams(
+          location.search
+        );
+
+
+      const districtId =
+        params.get("id") ||
+        params.get("districtId") ||
+        "";
+
+
+      const districtSlug =
+        params.get("slug") ||
+        "";
+
+
+      function text(value) {
+
+        return String(
+          value == null
+            ? ""
+            : value
+        ).trim();
+
+      }
+
+
+      function get(
+        object,
+        keys,
+        fallback
+      ) {
+
+        for (
+          const key of keys
+        ) {
+
+          if (
+            object &&
+            object[key] !== undefined &&
+            object[key] !== null &&
+            text(object[key])
+          ) {
+
+            return object[key];
+
+          }
+
+        }
+
+        return fallback || "";
+
+      }
+
+
+      function image(
+        value
+      ) {
+
+        if (
+          /^https?:\/\//i.test(
+            text(value)
+          )
+        ) {
+
+          return value;
+
+        }
+
+
+        return "data:image/svg+xml," +
+          encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg"
+              width="600"
+              height="340">
+              <rect width="100%" height="100%"
+                fill="#f3f4f6"/>
+              <text x="50%" y="50%"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                font-family="Arial"
+                font-size="32"
+                fill="#9ca3af">
+                UBnux
+              </text>
+            </svg>
+          `);
+
+      }
+
+
+      async function load() {
+
+        try {
+
+          const response =
+            await App.api.call(
+              "getseodistrict",
+              {
+                districtId:
+                  districtId,
+
+                id:
+                  districtId,
+
+                slug:
+                  districtSlug
+              },
+              {
+                retries: 1
+              }
+            );
+
+
+          if (
+            !response ||
+            !response.success
+          ) {
+
+            throw new Error(
+              "District not found."
+            );
+
+          }
+
+
+          const district =
+            response.data &&
+            (
+              response.data.district ||
+              response.data
+            );
+
+
+          if (!district) {
+
+            throw new Error(
+              "District not found."
+            );
+
+          }
+
+
+          render(
+            district
+          );
+
+
+        } catch (error) {
+
+          console.error(
+            error
+          );
+
+
+          document.getElementById(
+            "districtName"
+          ).textContent =
+            "District Not Found";
+
+          document.getElementById(
+            "districtDescription"
+          ).textContent =
+            "The requested district could not be found.";
+
+        }
+
+      }
+
+
+      function render(
+        district
+      ) {
+
+        const name =
+          text(
+            get(
+              district,
+              [
+                "DistrictName",
+                "Name",
+                "name"
+              ],
+              "District"
+            )
+          );
+
+
+        const description =
+          text(
+            get(
+              district,
+              [
+                "SEO_Description",
+                "SEODescription",
+                "Description"
+              ],
+              "Discover local businesses and services in " +
+              name +
+              "."
+            )
+          );
+
+
+        document.title =
+          text(
+            get(
+              district,
+              [
+                "SEO_Title",
+                "SEOTitle"
+              ],
+              name +
+              " Local Businesses | UBnux"
+            )
+          );
+
+
+        document.getElementById(
+          "metaDescription"
+        ).content =
+          description;
+
+
+        document.getElementById(
+          "districtName"
+        ).textContent =
+          name;
+
+
+        document.getElementById(
+          "districtDescription"
+        ).textContent =
+          description;
+
+
+        const categories =
+          Array.isArray(
+            district.categories
+          )
+            ? district.categories
+            : [];
+
+
+        const businesses =
+          Array.isArray(
+            district.businesses
+          )
+            ? district.businesses
+            : [];
+
+
+        renderCategories(
+          categories
+        );
+
+
+        renderBusinesses(
+          businesses
+        );
+
+      }
+
+
+      function renderCategories(
+        categories
+      ) {
+
+        const container =
+          document.getElementById(
+            "categories"
+          );
+
+
+        if (!categories.length) {
+
+          container.innerHTML =
+            "";
+
+          return;
+
+        }
+
+
+        container.innerHTML =
+          categories
+            .map(
+              category => {
+
+                const name =
+                  get(
+                    category,
+                    [
+                      "CategoryName",
+                      "Name",
+                      "name"
+                    ],
+                    "Category"
+                  );
+
+
+                const id =
+                  get(
+                    category,
+                    [
+                      "CategoryID",
+                      "CategoryId",
+                      "ID",
+                      "Id"
+                    ],
+                    ""
+                  );
+
+
+                return `
+                  <a
+                    class="category-link"
+                    href="category.html?id=${encodeURIComponent(id)}"
+                  >
+                    ${name}
+                  </a>
+                `;
+
+              }
+            )
+            .join("");
+
+      }
+
+
+      function renderBusinesses(
+        businesses
+      ) {
+
+        const container =
+          document.getElementById(
+            "businessGrid"
+          );
+
+
+        if (!businesses.length) {
+
+          container.innerHTML =
+            `
+              <div class="empty">
+                No businesses are currently available in this district.
+              </div>
+            `;
+
+          return;
+
+        }
+
+
+        container.innerHTML =
+          businesses
+            .map(
+              business => {
+
+                const id =
+                  get(
+                    business,
+                    [
+                      "BusinessID",
+                      "BusinessId",
+                      "businessId",
+                      "ID",
+                      "Id"
+                    ],
+                    ""
+                  );
+
+
+                const name =
+                  get(
+                    business,
+                    [
+                      "BusinessName",
+                      "businessName",
+                      "Name",
+                      "name"
+                    ],
+                    "Business"
+                  );
+
+
+                const category =
+                  get(
+                    business,
+                    [
+                      "CategoryName",
+                      "Category"
+                    ],
+                    ""
+                  );
+
+
+                const area =
+                  get(
+                    business,
+                    [
+                      "Area",
+                      "Locality"
+                    ],
+                    ""
+                  );
+
+
+                const rating =
+                  get(
+                    business,
+                    [
+                      "Rating",
+                      "rating"
+                    ],
+                    ""
+                  );
+
+
+                return `
+                  <article class="business-card">
+
+                    <img
+                      class="business-image"
+                      src="${image(
+                        get(
+                          business,
+                          [
+                            "ImageURL",
+                            "Image",
+                            "LogoURL",
+                            "Logo"
+                          ],
+                          ""
+                        )
+                      )}"
+                      alt="${name}"
+                      loading="lazy"
+                    >
+
+                    <div class="business-body">
+
+                      <h2 class="business-name">
+                        ${name}
+                      </h2>
+
+                      <div class="business-category">
+                        ${category}
+                      </div>
+
+                      <div class="business-location">
+                        ${area}
+                      </div>
+
+                      ${
+                        rating
+                          ? `
+                            <div class="business-rating">
+                              ★ ${rating}
+                            </div>
+                          `
+                          : ""
+                      }
+
+                      <a
+                        class="view"
+                        href="business-details.html?id=${encodeURIComponent(id)}"
+                      >
+                        View Business
+                      </a>
+
+                    </div>
+
+                  </article>
+                `;
+
+              }
+            )
+            .join("");
+
+      }
+
+
+      load();
+
+    })();
+
+  </script>
+
+</body>
+
+</html>

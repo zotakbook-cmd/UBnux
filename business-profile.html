@@ -1,0 +1,1653 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1.0"
+  >
+
+  <meta
+    name="theme-color"
+    content="#0f172a"
+  >
+
+  <title>Business Profile | UBnux</title>
+
+  <link
+    rel="stylesheet"
+    href="assets/css/style.css"
+  >
+
+  <style>
+
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      background:#f8fafc;
+      color:#0f172a;
+      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+
+    button,
+    input,
+    textarea,
+    select{
+      font:inherit;
+    }
+
+    .layout{
+      min-height:100vh;
+      display:flex;
+    }
+
+    .sidebar{
+      width:260px;
+      background:#0f172a;
+      color:#fff;
+      position:fixed;
+      inset:0 auto 0 0;
+      z-index:100;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .brand{
+      padding:24px 22px;
+      border-bottom:1px solid rgba(255,255,255,.1);
+    }
+
+    .brand-title{
+      font-size:24px;
+      font-weight:800;
+    }
+
+    .brand-subtitle{
+      color:#94a3b8;
+      font-size:12px;
+      margin-top:4px;
+    }
+
+    .business-mini{
+      padding:20px 18px;
+      border-bottom:1px solid rgba(255,255,255,.1);
+    }
+
+    .business-mini-name{
+      font-weight:700;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .nav{
+      padding:16px 12px;
+      flex:1;
+    }
+
+    .nav a{
+      display:block;
+      color:#cbd5e1;
+      padding:12px 14px;
+      border-radius:10px;
+      margin-bottom:5px;
+      font-size:14px;
+    }
+
+    .nav a.active,
+    .nav a:hover{
+      background:#1e293b;
+      color:#fff;
+    }
+
+    .logout{
+      margin:12px;
+      padding:11px;
+      border:0;
+      background:#1e293b;
+      color:#fff;
+      border-radius:10px;
+      cursor:pointer;
+    }
+
+    .main{
+      margin-left:260px;
+      width:calc(100% - 260px);
+    }
+
+    .topbar{
+      height:72px;
+      background:#fff;
+      border-bottom:1px solid #e2e8f0;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 30px;
+      position:sticky;
+      top:0;
+      z-index:50;
+    }
+
+    .title{
+      font-size:21px;
+      font-weight:750;
+    }
+
+    .mobile-menu{
+      display:none;
+      border:0;
+      padding:9px;
+      border-radius:8px;
+      background:#f1f5f9;
+    }
+
+    .content{
+      padding:30px;
+      max-width:1100px;
+      margin:auto;
+    }
+
+    .page-heading{
+      margin-bottom:22px;
+    }
+
+    .page-heading h1{
+      margin:0;
+      font-size:28px;
+    }
+
+    .page-heading p{
+      margin:7px 0 0;
+      color:#64748b;
+    }
+
+    .form-panel{
+      background:#fff;
+      border:1px solid #e2e8f0;
+      border-radius:16px;
+      overflow:hidden;
+      box-shadow:0 4px 15px rgba(15,23,42,.04);
+    }
+
+    .section{
+      padding:24px;
+      border-bottom:1px solid #e2e8f0;
+    }
+
+    .section:last-child{
+      border-bottom:0;
+    }
+
+    .section-title{
+      font-size:16px;
+      font-weight:750;
+      margin-bottom:18px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:17px;
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:7px;
+    }
+
+    .field.full{
+      grid-column:1/-1;
+    }
+
+    label{
+      font-size:13px;
+      font-weight:650;
+      color:#334155;
+    }
+
+    input,
+    textarea,
+    select{
+      width:100%;
+      border:1px solid #dbe3ee;
+      background:#fff;
+      border-radius:9px;
+      padding:11px 12px;
+      outline:none;
+      color:#0f172a;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus{
+      border-color:#2563eb;
+      box-shadow:0 0 0 3px rgba(37,99,235,.08);
+    }
+
+    textarea{
+      min-height:110px;
+      resize:vertical;
+    }
+
+    .hint{
+      font-size:11px;
+      color:#94a3b8;
+    }
+
+    .actions{
+      padding:20px 24px;
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+    }
+
+    .btn{
+      border:0;
+      border-radius:9px;
+      padding:11px 18px;
+      cursor:pointer;
+      font-weight:650;
+    }
+
+    .btn-primary{
+      background:#2563eb;
+      color:#fff;
+    }
+
+    .btn-secondary{
+      background:#f1f5f9;
+      color:#334155;
+    }
+
+    .message{
+      margin:0 24px 20px;
+      padding:11px 13px;
+      border-radius:9px;
+      font-size:13px;
+      display:none;
+    }
+
+    .message.success{
+      display:block;
+      background:#dcfce7;
+      color:#166534;
+    }
+
+    .message.error{
+      display:block;
+      background:#fee2e2;
+      color:#991b1b;
+    }
+
+    .loading{
+      opacity:.65;
+      pointer-events:none;
+    }
+
+    @media(max-width:760px){
+
+      .sidebar{
+        transform:translateX(-100%);
+        transition:.25s;
+      }
+
+      .sidebar.open{
+        transform:translateX(0);
+      }
+
+      .main{
+        margin-left:0;
+        width:100%;
+      }
+
+      .mobile-menu{
+        display:block;
+      }
+
+      .topbar{
+        padding:0 16px;
+      }
+
+      .content{
+        padding:20px 15px;
+      }
+
+      .grid{
+        grid-template-columns:1fr;
+      }
+
+      .field.full{
+        grid-column:auto;
+      }
+
+      .section{
+        padding:18px;
+      }
+
+      .actions{
+        padding:18px;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+<div class="layout">
+
+  <aside
+    class="sidebar"
+    id="sidebar"
+  >
+
+    <div class="brand">
+      <div class="brand-title">UBnux</div>
+      <div class="brand-subtitle">
+        Business Management
+      </div>
+    </div>
+
+    <div class="business-mini">
+      <div
+        class="business-mini-name"
+        id="sidebarBusinessName"
+      >
+        Business
+      </div>
+    </div>
+
+    <nav class="nav">
+
+      <a href="business-dashboard.html">
+        📊 Dashboard
+      </a>
+
+      <a
+        href="business-profile.html"
+        class="active"
+      >
+        🏪 Business Profile
+      </a>
+
+      <a href="business-enquiries.html">
+        💬 Enquiries
+      </a>
+
+      <a href="business-services.html">
+        🛍️ Products & Services
+      </a>
+
+      <a href="business-settings.html">
+        ⚙️ Settings
+      </a>
+
+    </nav>
+
+    <button
+      class="logout"
+      id="logoutButton"
+    >
+      Logout
+    </button>
+
+  </aside>
+
+
+  <main class="main">
+
+    <header class="topbar">
+
+      <div style="display:flex;align-items:center;gap:12px">
+
+        <button
+          class="mobile-menu"
+          id="mobileMenuButton"
+        >
+          ☰
+        </button>
+
+        <div class="title">
+          Business Profile
+        </div>
+
+      </div>
+
+    </header>
+
+
+    <section class="content">
+
+      <div class="page-heading">
+
+        <h1>
+          Business Profile
+        </h1>
+
+        <p>
+          Keep your business information accurate and complete.
+        </p>
+
+      </div>
+
+
+      <form
+        class="form-panel"
+        id="profileForm"
+      >
+
+        <div class="section">
+
+          <div class="section-title">
+            Basic Information
+          </div>
+
+          <div class="grid">
+
+            <div class="field">
+
+              <label>
+                Business Name *
+              </label>
+
+              <input
+                id="businessName"
+                name="businessName"
+                required
+              >
+
+            </div>
+
+
+            <div class="field">
+
+              <label>
+                Owner Name
+              </label>
+
+              <input
+                id="ownerName"
+                name="ownerName"
+              >
+
+            </div>
+
+
+            <div class="field">
+
+              <label>
+                Mobile Number *
+              </label>
+
+              <input
+                id="mobile"
+                name="mobile"
+                inputmode="tel"
+                required
+              >
+
+            </div>
+
+
+            <div class="field">
+
+              <label>
+                Email
+              </label>
+
+              <input
+                id="email"
+                name="email"
+                type="email"
+              >
+
+            </div>
+
+
+            <div class="field">
+
+              <label>
+                Category
+              </label>
+
+              <select
+                id="category"
+                name="category"
+              >
+
+                <option value="">
+                  Select Category
+                </option>
+
+              </select>
+
+            </div>
+
+
+            <div class="field">
+
+              <label>
+                District
+              </label>
+
+              <select
+                id="district"
+                name="district"
+              >
+
+                <option value="">
+                  Select District
+                </option>
+
+              </select>
+
+            </div>
+
+
+            <div class="field">
+
+              <label>
+                Area / Locality
+              </label>
+
+              <input
+                id="area"
+                name="area"
+              >
+
+            </div>
+
+
+            <div class="field">
+
+              <label>
+                Pincode
+              </label>
+
+              <input
+                id="pincode"
+                name="pincode"
+                inputmode="numeric"
+              >
+
+            </div>
+
+
+            <div class="field full">
+
+              <label>
+                Address
+              </label>
+
+              <textarea
+                id="address"
+                name="address"
+              ></textarea>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="section">
+
+          <div class="section-title">
+            Business Description
+          </div>
+
+          <div class="grid">
+
+            <div class="field full">
+
+              <label>
+                Description
+              </label>
+
+              <textarea
+                id="description"
+                name="description"
+                placeholder="Describe your business, products, services and specialties..."
+              ></textarea>
+
+              <div class="hint">
+                A clear description helps customers understand your business.
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="section">
+
+          <div class="section-title">
+            Online Presence
+          </div>
+
+          <div class="grid">
+
+            <div class="field">
+
+              <label>
+                Website
+              </label>
+
+              <input
+                id="website"
+                name="website"
+                type="url"
+                placeholder="https://"
+              >
+
+            </div>
+
+
+            <div class="field">
+
+              <label>
+                Facebook
+              </label>
+
+              <input
+                id="facebook"
+                name="facebook"
+                type="url"
+              >
+
+            </div>
+
+
+            <div class="field">
+
+              <label>
+                Instagram
+              </label>
+
+              <input
+                id="instagram"
+                name="instagram"
+                type="url"
+              >
+
+            </div>
+
+
+            <div class="field">
+
+              <label>
+                WhatsApp
+              </label>
+
+              <input
+                id="whatsapp"
+                name="whatsapp"
+                inputmode="tel"
+              >
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="message"
+          id="formMessage"
+        ></div>
+
+
+        <div class="actions">
+
+          <button
+            type="button"
+            class="btn btn-secondary"
+            id="cancelButton"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            class="btn btn-primary"
+            id="saveButton"
+          >
+            Save Changes
+          </button>
+
+        </div>
+
+      </form>
+
+    </section>
+
+  </main>
+
+</div>
+
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/state.js"></script>
+<script src="assets/js/cache.js"></script>
+<script src="assets/js/api.js"></script>
+<script src="assets/js/utils.js"></script>
+
+
+<script>
+
+"use strict";
+
+
+const PROFILE_GET_ACTION =
+  "getbusinessprofile";
+
+const PROFILE_UPDATE_ACTION =
+  "updatebusinessprofile";
+
+
+function getAuth(){
+
+  try{
+
+    const raw =
+      localStorage.getItem(
+        "ubnux_business_auth"
+      ) ||
+      sessionStorage.getItem(
+        "ubnux_business_auth"
+      ) ||
+      localStorage.getItem(
+        "zilaBiz_business_auth"
+      );
+
+    return raw
+      ? JSON.parse(raw)
+      : null;
+
+  }catch(error){
+
+    return null;
+
+  }
+
+}
+
+
+function getBusinessId(){
+
+  const auth =
+    getAuth();
+
+  if(!auth){
+    return "";
+  }
+
+  const business =
+    auth.business ||
+    auth.user ||
+    auth.data ||
+    auth;
+
+  return (
+    business.businessId ||
+    business.BusinessID ||
+    business.id ||
+    business.ID ||
+    auth.businessId ||
+    auth.BusinessID ||
+    auth.userId ||
+    auth.UserID ||
+    ""
+  );
+
+}
+
+
+function read(
+  obj,
+  keys,
+  fallback=""
+){
+
+  if(!obj){
+    return fallback;
+  }
+
+  for(
+    const key of keys
+  ){
+
+    if(
+      obj[key] !== undefined &&
+      obj[key] !== null &&
+      String(obj[key]).trim() !== ""
+    ){
+
+      return obj[key];
+
+    }
+
+  }
+
+  return fallback;
+
+}
+
+
+function setValue(
+  id,
+  value
+){
+
+  const element =
+    document.getElementById(id);
+
+  if(element){
+    element.value =
+      value ?? "";
+  }
+
+}
+
+
+function populateSelect(
+  id,
+  items,
+  selectedValue
+){
+
+  const select =
+    document.getElementById(id);
+
+  if(!select){
+    return;
+  }
+
+  const original =
+    select.options[0]
+      ?.outerHTML ||
+    "";
+
+  select.innerHTML =
+    original;
+
+  if(!Array.isArray(items)){
+    return;
+  }
+
+  items.forEach(item => {
+
+    const idValue =
+      read(
+        item,
+        [
+          "CategoryID",
+          "categoryId",
+          "DistrictID",
+          "districtId",
+          "ID",
+          "id",
+          "Code",
+          "code"
+        ],
+        ""
+      );
+
+    const name =
+      read(
+        item,
+        [
+          "CategoryName",
+          "categoryName",
+          "DistrictName",
+          "districtName",
+          "Name",
+          "name"
+        ],
+        idValue
+      );
+
+    const option =
+      document.createElement(
+        "option"
+      );
+
+    option.value =
+      idValue || name;
+
+    option.textContent =
+      name;
+
+    if(
+      String(option.value).toLowerCase() ===
+      String(selectedValue).toLowerCase() ||
+      String(name).toLowerCase() ===
+      String(selectedValue).toLowerCase()
+    ){
+
+      option.selected =
+        true;
+
+    }
+
+    select.appendChild(
+      option
+    );
+
+  });
+
+}
+
+
+async function loadOptions(){
+
+  try{
+
+    const response =
+      await App.api.getInitialDataFast();
+
+    if(
+      !response ||
+      response.success === false
+    ){
+      return;
+    }
+
+    const data =
+      response.data ||
+      {};
+
+    const currentCategory =
+      document.getElementById(
+        "category"
+      ).value;
+
+    const currentDistrict =
+      document.getElementById(
+        "district"
+      ).value;
+
+    populateSelect(
+      "category",
+      data.categories || [],
+      currentCategory
+    );
+
+    populateSelect(
+      "district",
+      data.districts || [],
+      currentDistrict
+    );
+
+  }catch(error){
+
+    console.warn(
+      "Options:",
+      error
+    );
+
+  }
+
+}
+
+
+function fillForm(
+  business
+){
+
+  setValue(
+    "businessName",
+    read(
+      business,
+      [
+        "BusinessName",
+        "businessName",
+        "Name",
+        "name"
+      ]
+    )
+  );
+
+  setValue(
+    "ownerName",
+    read(
+      business,
+      [
+        "OwnerName",
+        "ownerName",
+        "Owner"
+      ]
+    )
+  );
+
+  setValue(
+    "mobile",
+    read(
+      business,
+      [
+        "Mobile",
+        "mobile",
+        "Phone",
+        "phone"
+      ]
+    )
+  );
+
+  setValue(
+    "email",
+    read(
+      business,
+      [
+        "Email",
+        "email"
+      ]
+    )
+  );
+
+  setValue(
+    "area",
+    read(
+      business,
+      [
+        "Area",
+        "area",
+        "Locality",
+        "locality"
+      ]
+    )
+  );
+
+  setValue(
+    "pincode",
+    read(
+      business,
+      [
+        "Pincode",
+        "pincode",
+        "PinCode"
+      ]
+    )
+  );
+
+  setValue(
+    "address",
+    read(
+      business,
+      [
+        "Address",
+        "address"
+      ]
+    )
+  );
+
+  setValue(
+    "description",
+    read(
+      business,
+      [
+        "Description",
+        "description",
+        "ShortDescription"
+      ]
+    )
+  );
+
+  setValue(
+    "website",
+    read(
+      business,
+      [
+        "WebsiteURL",
+        "websiteURL",
+        "Website",
+        "website"
+      ]
+    )
+  );
+
+  setValue(
+    "facebook",
+    read(
+      business,
+      [
+        "FacebookURL",
+        "facebookURL",
+        "Facebook",
+        "facebook"
+      ]
+    )
+  );
+
+  setValue(
+    "instagram",
+    read(
+      business,
+      [
+        "InstagramURL",
+        "instagramURL",
+        "Instagram",
+        "instagram"
+      ]
+    )
+  );
+
+  setValue(
+    "whatsapp",
+    read(
+      business,
+      [
+        "WhatsApp",
+        "whatsapp",
+        "WhatsAppNumber",
+        "whatsappNumber"
+      ]
+    )
+  );
+
+  setTimeout(
+    () => {
+
+      const category =
+        read(
+          business,
+          [
+            "CategoryID",
+            "categoryId",
+            "Category",
+            "category",
+            "CategoryName"
+          ]
+        );
+
+      const district =
+        read(
+          business,
+          [
+            "DistrictID",
+            "districtId",
+            "District",
+            "district",
+            "DistrictName"
+          ]
+        );
+
+      document.getElementById(
+        "category"
+      ).value =
+        category;
+
+      document.getElementById(
+        "district"
+      ).value =
+        district;
+
+    },
+    100
+  );
+
+}
+
+
+async function loadProfile(){
+
+  const auth =
+    getAuth();
+
+  if(!auth){
+
+    location.href =
+      "business-login.html";
+
+    return;
+
+  }
+
+  const businessId =
+    getBusinessId();
+
+  try{
+
+    const response =
+      await App.api.call(
+        PROFILE_GET_ACTION,
+        {
+          businessId,
+          BusinessID:businessId,
+          userId:businessId,
+          UserID:businessId
+        },
+        {
+          retries:1
+        }
+      );
+
+    if(
+      !response ||
+      response.success === false
+    ){
+
+      throw new Error(
+        response?.message ||
+        "Profile could not be loaded."
+      );
+
+    }
+
+    const data =
+      response.data ||
+      response;
+
+    const business =
+      data.business ||
+      data.profile ||
+      data.user ||
+      data;
+
+    fillForm(
+      business
+    );
+
+    await loadOptions();
+
+    fillForm(
+      business
+    );
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+    showMessage(
+      error.message ||
+      "Unable to load profile.",
+      true
+    );
+
+  }
+
+}
+
+
+function showMessage(
+  text,
+  isError=false
+){
+
+  const box =
+    document.getElementById(
+      "formMessage"
+    );
+
+  box.textContent =
+    text;
+
+  box.className =
+    "message " +
+    (
+      isError
+        ? "error"
+        : "success"
+    );
+
+}
+
+
+async function saveProfile(
+  event
+){
+
+  event.preventDefault();
+
+  const form =
+    document.getElementById(
+      "profileForm"
+    );
+
+  const saveButton =
+    document.getElementById(
+      "saveButton"
+    );
+
+  const businessId =
+    getBusinessId();
+
+  const formData =
+    new FormData(form);
+
+  const payload = {
+
+    businessId,
+    BusinessID:businessId,
+
+    businessName:
+      formData.get(
+        "businessName"
+      ),
+
+    BusinessName:
+      formData.get(
+        "businessName"
+      ),
+
+    ownerName:
+      formData.get(
+        "ownerName"
+      ),
+
+    OwnerName:
+      formData.get(
+        "ownerName"
+      ),
+
+    mobile:
+      formData.get(
+        "mobile"
+      ),
+
+    Mobile:
+      formData.get(
+        "mobile"
+      ),
+
+    email:
+      formData.get(
+        "email"
+      ),
+
+    Email:
+      formData.get(
+        "email"
+      ),
+
+    category:
+      formData.get(
+        "category"
+      ),
+
+    Category:
+      formData.get(
+        "category"
+      ),
+
+    district:
+      formData.get(
+        "district"
+      ),
+
+    District:
+      formData.get(
+        "district"
+      ),
+
+    area:
+      formData.get(
+        "area"
+      ),
+
+    Area:
+      formData.get(
+        "area"
+      ),
+
+    pincode:
+      formData.get(
+        "pincode"
+      ),
+
+    Pincode:
+      formData.get(
+        "pincode"
+      ),
+
+    address:
+      formData.get(
+        "address"
+      ),
+
+    Address:
+      formData.get(
+        "address"
+      ),
+
+    description:
+      formData.get(
+        "description"
+      ),
+
+    Description:
+      formData.get(
+        "description"
+      ),
+
+    website:
+      formData.get(
+        "website"
+      ),
+
+    WebsiteURL:
+      formData.get(
+        "website"
+      ),
+
+    facebook:
+      formData.get(
+        "facebook"
+      ),
+
+    FacebookURL:
+      formData.get(
+        "facebook"
+      ),
+
+    instagram:
+      formData.get(
+        "instagram"
+      ),
+
+    InstagramURL:
+      formData.get(
+        "instagram"
+      ),
+
+    whatsapp:
+      formData.get(
+        "whatsapp"
+      ),
+
+    WhatsApp:
+      formData.get(
+        "whatsapp"
+      )
+
+  };
+
+
+  try{
+
+    form.classList.add(
+      "loading"
+    );
+
+    saveButton.textContent =
+      "Saving...";
+
+    const response =
+      await App.api.call(
+        PROFILE_UPDATE_ACTION,
+        payload,
+        {
+          retries:1
+        }
+      );
+
+    if(
+      !response ||
+      response.success === false
+    ){
+
+      throw new Error(
+        response?.message ||
+        "Profile update failed."
+      );
+
+    }
+
+    showMessage(
+      response.message ||
+      "Business profile updated successfully."
+    );
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+    showMessage(
+      error.message ||
+      "Unable to save profile.",
+      true
+    );
+
+  }finally{
+
+    form.classList.remove(
+      "loading"
+    );
+
+    saveButton.textContent =
+      "Save Changes";
+
+  }
+
+}
+
+
+function getAuthBusinessName(){
+
+  const auth =
+    getAuth();
+
+  const business =
+    auth?.business ||
+    auth?.user ||
+    auth?.data ||
+    auth ||
+    {};
+
+  return read(
+    business,
+    [
+      "BusinessName",
+      "businessName",
+      "Name",
+      "name"
+    ],
+    "Business"
+  );
+
+}
+
+
+function logout(){
+
+  localStorage.removeItem(
+    "ubnux_business_auth"
+  );
+
+  localStorage.removeItem(
+    "zilaBiz_business_auth"
+  );
+
+  sessionStorage.removeItem(
+    "ubnux_business_auth"
+  );
+
+  location.href =
+    "business-login.html";
+
+}
+
+
+document
+  .getElementById(
+    "profileForm"
+  )
+  .addEventListener(
+    "submit",
+    saveProfile
+  );
+
+
+document
+  .getElementById(
+    "logoutButton"
+  )
+  .addEventListener(
+    "click",
+    logout
+  );
+
+
+document
+  .getElementById(
+    "cancelButton"
+  )
+  .addEventListener(
+    "click",
+    () => {
+
+      location.href =
+        "business-dashboard.html";
+
+    }
+  );
+
+
+document
+  .getElementById(
+    "mobileMenuButton"
+  )
+  .addEventListener(
+    "click",
+    () => {
+
+      document
+        .getElementById(
+          "sidebar"
+        )
+        .classList.toggle(
+          "open"
+        );
+
+    }
+  );
+
+
+document.getElementById(
+  "sidebarBusinessName"
+).textContent =
+  getAuthBusinessName();
+
+
+loadProfile();
+
+</script>
+
+</body>
+</html>
