@@ -1,0 +1,61 @@
+name = "ubnux-seo-worker"
+
+main = "index.js"
+
+compatibility_date = "2026-09-11"
+
+workers_dev = true
+
+
+# ============================================================
+# ENVIRONMENT VARIABLES
+# ============================================================
+
+[vars]
+
+# ------------------------------------------------------------
+# IMPORTANT
+# ------------------------------------------------------------
+#
+# Replace this with your deployed Google Apps Script Web App
+# URL.
+#
+# Example:
+#
+# ZILABIZ_API_URL = "https://script.google.com/macros/s/XXXXXXXX/exec"
+#
+# Existing ZilaBiz backend variable is intentionally retained
+# for backward compatibility.
+# ------------------------------------------------------------
+
+ZILABIZ_API_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL"
+
+
+# ------------------------------------------------------------
+# Optional UBnux API variable
+# ------------------------------------------------------------
+#
+# If this is set, UBNUX_API_URL takes priority over
+# ZILABIZ_API_URL.
+#
+# UBNUX_API_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL"
+
+
+# ------------------------------------------------------------
+# SITE BASE URL
+# ------------------------------------------------------------
+#
+# Production domain.
+#
+# If omitted, Worker automatically uses the current request
+# origin.
+# ------------------------------------------------------------
+
+SITE_BASE_URL = "https://ubnux.com"
+
+
+# ------------------------------------------------------------
+# Sitemap safety limit
+# ------------------------------------------------------------
+
+SITEMAP_MAX_BUSINESSES = "50000"

@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Do not crawl internal/API endpoints
+Disallow: /api/
+Disallow: /admin/
+Disallow: /login/
+Disallow: /dashboard/
+
+Sitemap: https://ubnux.com/sitemap.xml
