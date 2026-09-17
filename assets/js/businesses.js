@@ -12,6 +12,7 @@
    - Skeleton state
    - Business modal integration
    - Search/filter result rendering
+   - Robust business status handling
    ========================================================= */
 
 (function (window, document) {
@@ -42,6 +43,7 @@
   var CONFIG =
     window.UBNux_CONFIG ||
     window.ZILABIZ_CONFIG ||
+    window.ZilaBizConfig ||
     {};
 
 
@@ -50,6 +52,45 @@
       CONFIG.BUSINESS_PAGE_SIZE
     ) ||
     18;
+
+
+  /* =======================================================
+     DEBUG
+     ======================================================= */
+
+  var DEBUG =
+    CONFIG.DEBUG === true;
+
+
+  function debug() {
+
+    if (
+      !DEBUG ||
+      !window.console ||
+      typeof console.log !==
+      "function"
+    ) {
+
+      return;
+
+    }
+
+
+    try {
+
+      console.log.apply(
+        console,
+        arguments
+      );
+
+    }
+    catch (error) {
+
+      /* Ignore debug errors */
+
+    }
+
+  }
 
 
   /* =======================================================
@@ -103,6 +144,86 @@
 
 
   /* =======================================================
+     REFRESH DOM REFERENCES
+     ======================================================= */
+
+  function refreshDOMReferences() {
+
+    if (
+      !businessGrid
+    ) {
+
+      businessGrid =
+        getElement(
+          "businessGrid"
+        );
+
+    }
+
+
+    if (
+      !businessCount
+    ) {
+
+      businessCount =
+        getElement(
+          "businessCount"
+        );
+
+    }
+
+
+    if (
+      !emptyState
+    ) {
+
+      emptyState =
+        getElement(
+          "emptyState"
+        );
+
+    }
+
+
+    if (
+      !loadMoreContainer
+    ) {
+
+      loadMoreContainer =
+        getElement(
+          "loadMoreContainer"
+        );
+
+    }
+
+
+    if (
+      !loadMoreButton
+    ) {
+
+      loadMoreButton =
+        getElement(
+          "loadMoreButton"
+        );
+
+    }
+
+
+    if (
+      !searchStatus
+    ) {
+
+      searchStatus =
+        getElement(
+          "searchStatus"
+        );
+
+    }
+
+  }
+
+
+  /* =======================================================
      GENERIC VALUE READER
      ======================================================= */
 
@@ -129,6 +250,10 @@
     }
 
 
+    /*
+     * Exact property lookup
+     */
+
     for (
       var i = 0;
       i < fields.length;
@@ -140,21 +265,38 @@
 
 
       if (
-        business[field] !==
-          undefined &&
-        business[field] !==
-          null &&
-        String(
-          business[field]
-        ).trim() !== ""
+        Object.prototype.hasOwnProperty.call(
+          business,
+          field
+        )
       ) {
 
-        return business[field];
+        var exactValue =
+          business[field];
+
+
+        if (
+          exactValue !==
+            undefined &&
+          exactValue !==
+            null &&
+          String(
+            exactValue
+          ).trim() !== ""
+        ) {
+
+          return exactValue;
+
+        }
 
       }
 
     }
 
+
+    /*
+     * Case-insensitive lookup
+     */
 
     var keys =
       Object.keys(
@@ -171,7 +313,9 @@
       var target =
         String(
           fields[j]
-        ).toLowerCase();
+        )
+        .trim()
+        .toLowerCase();
 
 
       for (
@@ -183,7 +327,9 @@
         if (
           String(
             keys[k]
-          ).toLowerCase() ===
+          )
+          .trim()
+          .toLowerCase() ===
           target
         ) {
 
@@ -276,7 +422,8 @@
       parseFloat(
         String(
           value
-        ).replace(
+        )
+        .replace(
           /,/g,
           ""
         )
@@ -330,27 +477,120 @@
     }
 
 
-    return String(value)
-      .replace(
-        /&/g,
-        "&amp;"
+    return String(
+      value
+    )
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    );
+
+  }
+
+
+  /* =======================================================
+     NORMALIZE IMAGE URL
+     ======================================================= */
+
+  function normalizeImageURL(
+    value
+  ) {
+
+    var url =
+      String(
+        value ||
+        ""
+      ).trim();
+
+
+    if (
+      !url
+    ) {
+
+      return "";
+
+    }
+
+
+    /*
+     * Allow data:image fallback.
+     */
+
+    if (
+      /^data:image\//i.test(
+        url
       )
-      .replace(
-        /</g,
-        "&lt;"
+    ) {
+
+      return url;
+
+    }
+
+
+    /*
+     * Allow normal http/https images.
+     */
+
+    if (
+      /^https?:\/\//i.test(
+        url
       )
-      .replace(
-        />/g,
-        "&gt;"
+    ) {
+
+      return url;
+
+    }
+
+
+    /*
+     * Allow protocol-relative URLs.
+     */
+
+    if (
+      /^\/\//.test(
+        url
       )
-      .replace(
-        /"/g,
-        "&quot;"
-      )
-      .replace(
-        /'/g,
-        "&#039;"
+    ) {
+
+      return (
+        window.location.protocol +
+        url
       );
+
+    }
+
+
+    /*
+     * Relative image URL.
+     */
+
+    if (
+      url.charAt(0) ===
+      "/"
+    ) {
+
+      return url;
+
+    }
+
+
+    return url;
 
   }
 
@@ -370,6 +610,8 @@
         "businessID",
         "businessId",
         "BusinessId",
+        "BusinessCode",
+        "businessCode",
         "ID",
         "Id",
         "id"
@@ -418,17 +660,29 @@
       "function"
     ) {
 
-      var filterCategory =
-        App.filters.getCategoryName(
-          business
+      try {
+
+        var filterCategory =
+          App.filters.getCategoryName(
+            business
+          );
+
+
+        if (
+          filterCategory
+        ) {
+
+          return filterCategory;
+
+        }
+
+      }
+      catch (error) {
+
+        debug(
+          "[UBnux] Category resolver error:",
+          error
         );
-
-
-      if (
-        filterCategory
-      ) {
-
-        return filterCategory;
 
       }
 
@@ -443,7 +697,10 @@
         "Category",
         "category",
         "CategoryTitle",
-        "categoryTitle"
+        "categoryTitle",
+        "CategoryID",
+        "categoryID",
+        "categoryId"
       ],
       ""
     );
@@ -465,7 +722,12 @@
         "DistrictName",
         "districtName",
         "District",
-        "district"
+        "district",
+        "DistrictTitle",
+        "districtTitle",
+        "DistrictID",
+        "districtID",
+        "districtId"
       ],
       ""
     );
@@ -491,7 +753,11 @@
         "Location",
         "location",
         "Village",
-        "village"
+        "village",
+        "Town",
+        "town",
+        "City",
+        "city"
       ],
       ""
     );
@@ -513,7 +779,9 @@
         "Address",
         "address",
         "FullAddress",
-        "fullAddress"
+        "fullAddress",
+        "BusinessAddress",
+        "businessAddress"
       ],
       ""
     );
@@ -539,7 +807,11 @@
         "MobileNumber",
         "mobileNumber",
         "Contact",
-        "contact"
+        "contact",
+        "ContactNumber",
+        "contactNumber",
+        "PhoneNumber",
+        "phoneNumber"
       ],
       ""
     );
@@ -562,7 +834,9 @@
         "whatsapp",
         "Whatsapp",
         "WhatsAppNumber",
-        "whatsappNumber"
+        "whatsappNumber",
+        "WhatsAppMobile",
+        "whatsappMobile"
       ],
       ""
     );
@@ -587,10 +861,16 @@
         "logoURL",
         "LogoUrl",
         "logoUrl",
+        "LogoImage",
+        "logoImage",
         "Image",
         "image",
         "ImageURL",
-        "imageURL"
+        "imageURL",
+        "ImageUrl",
+        "imageUrl",
+        "BusinessImage",
+        "businessImage"
       ],
       ""
     );
@@ -615,8 +895,12 @@
         "coverImage",
         "CoverURL",
         "coverURL",
+        "CoverUrl",
+        "coverUrl",
         "Banner",
-        "banner"
+        "banner",
+        "BannerImage",
+        "bannerImage"
       ],
       ""
     );
@@ -638,7 +922,9 @@
         "Rating",
         "rating",
         "AverageRating",
-        "averageRating"
+        "averageRating",
+        "AvgRating",
+        "avgRating"
       ],
       0
     );
@@ -662,7 +948,9 @@
         "Reviews",
         "reviews",
         "TotalReviews",
-        "totalReviews"
+        "totalReviews",
+        "ReviewTotal",
+        "reviewTotal"
       ],
       0
     );
@@ -686,7 +974,9 @@
         "About",
         "about",
         "BusinessDescription",
-        "businessDescription"
+        "businessDescription",
+        "Details",
+        "details"
       ],
       ""
     );
@@ -709,7 +999,9 @@
           "Featured",
           "featured",
           "IsFeatured",
-          "isFeatured"
+          "isFeatured",
+          "FeaturedStatus",
+          "featuredStatus"
         ],
         ""
       )
@@ -720,7 +1012,8 @@
       value === "true" ||
       value === "yes" ||
       value === "1" ||
-      value === "featured"
+      value === "featured" ||
+      value === "active"
     );
 
   }
@@ -741,7 +1034,9 @@
           "Verified",
           "verified",
           "IsVerified",
-          "isVerified"
+          "isVerified",
+          "VerifiedStatus",
+          "verifiedStatus"
         ],
         ""
       )
@@ -752,37 +1047,52 @@
       value === "true" ||
       value === "yes" ||
       value === "1" ||
-      value === "verified"
+      value === "verified" ||
+      value === "active"
     );
 
   }
 
 
   /* =======================================================
-     ACTIVE
+     ACTIVE STATUS
      ======================================================= */
 
   function isActive(
     business
   ) {
 
-    if (!business) {
+    if (
+      !business ||
+      typeof business !==
+      "object"
+    ) {
 
       return false;
 
     }
 
 
-    var fields = [
+    /*
+     * IMPORTANT:
+     *
+     * Only use a field as a visibility field
+     * when that field actually exists.
+     *
+     * This prevents unrelated fields from
+     * accidentally hiding a business.
+     */
 
-      "Active",
-      "active",
+    var statusFields = [
+
+      "BusinessStatus",
+      "businessStatus",
 
       "Status",
       "status",
 
-      "BusinessStatus",
-      "businessStatus",
+      "Active",
+      "active",
 
       "Published",
       "published",
@@ -790,35 +1100,80 @@
       "Approved",
       "approved",
 
-      "Available",
-      "available",
-
       "Live",
-      "live"
+      "live",
+
+      "Availability",
+      "availability"
 
     ];
 
 
+    var foundStatus =
+      false;
+
+
     var raw =
-      getValue(
-        business,
-        fields,
-        null
-      );
+      "";
+
+
+    for (
+      var i = 0;
+      i < statusFields.length;
+      i++
+    ) {
+
+      var field =
+        statusFields[i];
+
+
+      if (
+        Object.prototype.hasOwnProperty.call(
+          business,
+          field
+        )
+      ) {
+
+        var candidate =
+          business[field];
+
+
+        if (
+          candidate !==
+            undefined &&
+          candidate !==
+            null &&
+          String(
+            candidate
+          ).trim() !== ""
+        ) {
+
+          foundStatus =
+            true;
+
+          raw =
+            String(
+              candidate
+            )
+            .trim()
+            .toLowerCase();
+
+          break;
+
+        }
+
+      }
+
+    }
 
 
     /*
-     * Missing status means visible.
+     * No status field:
+     * business should be visible.
      */
 
     if (
-      raw ===
-      null ||
-      raw ===
-      undefined ||
-      String(
-        raw
-      ).trim() === ""
+      !foundStatus
     ) {
 
       return true;
@@ -826,35 +1181,33 @@
     }
 
 
-    var value =
-      String(
-        raw
-      )
-      .trim()
-      .toLowerCase();
+    /*
+     * Explicit inactive values.
+     */
 
+    var inactiveValues = [
 
-    var inactive =
-      [
+      "inactive",
+      "disabled",
+      "blocked",
+      "closed",
+      "offline",
+      "unavailable",
+      "unpublished",
+      "rejected",
+      "deleted",
+      "removed",
+      "suspended",
+      "no",
+      "false",
+      "0"
 
-        "inactive",
-        "disabled",
-        "blocked",
-        "closed",
-        "offline",
-        "unavailable",
-        "unpublished",
-        "rejected",
-        "no",
-        "false",
-        "0"
-
-      ];
+    ];
 
 
     if (
-      inactive.indexOf(
-        value
+      inactiveValues.indexOf(
+        raw
       ) !== -1
     ) {
 
@@ -862,6 +1215,50 @@
 
     }
 
+
+    /*
+     * Explicit active values.
+     */
+
+    var activeValues = [
+
+      "active",
+      "enabled",
+      "open",
+      "online",
+      "available",
+      "published",
+      "approved",
+      "verified",
+      "live",
+      "yes",
+      "true",
+      "1",
+      "featured"
+
+    ];
+
+
+    if (
+      activeValues.indexOf(
+        raw
+      ) !== -1
+    ) {
+
+      return true;
+
+    }
+
+
+    /*
+     * Unknown status:
+     *
+     * Do NOT hide the business.
+     *
+     * This is important because backend
+     * may use values such as:
+     * Pending, Review, Listed, etc.
+     */
 
     return true;
 
@@ -959,7 +1356,9 @@
     phone
   ) {
 
-    if (!phone) {
+    if (
+      !phone
+    ) {
 
       return "";
 
@@ -992,7 +1391,9 @@
     phone
   ) {
 
-    if (!phone) {
+    if (
+      !phone
+    ) {
 
       return "";
 
@@ -1046,8 +1447,7 @@
   function getFallbackImage() {
 
     return (
-      "data:image/svg+xml," +
-      "charset=UTF-8," +
+      "data:image/svg+xml;charset=UTF-8," +
       encodeURIComponent(
         '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">' +
           '<rect width="600" height="400" fill="#f3f4f6"/>' +
@@ -1056,6 +1456,49 @@
           '<text x="300" y="370" text-anchor="middle" font-family="Arial" font-size="22" fill="#6b7280">UBnux</text>' +
         '</svg>'
       )
+    );
+
+  }
+
+
+  /* =======================================================
+     SAFE HREF ATTRIBUTE
+     ======================================================= */
+
+  function hrefAttribute(
+    url
+  ) {
+
+    var value =
+      String(
+        url ||
+        ""
+      );
+
+
+    if (
+      !/^tel:/i.test(
+        value
+      ) &&
+      !/^https:\/\//i.test(
+        value
+      ) &&
+      !/^http:\/\//i.test(
+        value
+      )
+    ) {
+
+      return "";
+
+    }
+
+
+    return (
+      'href="' +
+      escapeHTML(
+        value
+      ) +
+      '"'
     );
 
   }
@@ -1072,10 +1515,33 @@
 
     if (
       !business ||
+      typeof business !==
+      "object"
+    ) {
+
+      return "";
+
+    }
+
+
+    /*
+     * Do not silently fail here.
+     *
+     * renderBusinesses() already handles
+     * active filtering.
+     */
+
+    if (
       !isActive(
         business
       )
     ) {
+
+      debug(
+        "[UBnux] Business skipped because inactive:",
+        business
+      );
+
 
       return "";
 
@@ -1086,6 +1552,26 @@
       getBusinessId(
         business
       );
+
+
+    /*
+     * If ID is missing, create a temporary
+     * stable index-based ID.
+     */
+
+    if (
+      !id
+    ) {
+
+      id =
+        "business-" +
+        (
+          Number(
+            index
+          ) || 0
+        );
+
+    }
 
 
     var name =
@@ -1132,14 +1618,18 @@
 
 
     var logo =
-      getLogo(
-        business
+      normalizeImageURL(
+        getLogo(
+          business
+        )
       );
 
 
     var cover =
-      getCover(
-        business
+      normalizeImageURL(
+        getCover(
+          business
+        )
       );
 
 
@@ -1221,6 +1711,10 @@
       "";
 
 
+    /* =====================================================
+       CARD
+       ===================================================== */
+
     html +=
       '<article ' +
       'class="business-card" ' +
@@ -1260,7 +1754,9 @@
       'loading="lazy" ' +
       'decoding="async" ' +
       'onerror="this.onerror=null;this.src=\'' +
-      getFallbackImage() +
+      escapeHTML(
+        getFallbackImage()
+      ) +
       '\'">';
 
 
@@ -1321,6 +1817,10 @@
         ) +
       '</h3>';
 
+
+    /* =====================================================
+       CATEGORY
+       ===================================================== */
 
     if (
       category
@@ -1437,11 +1937,15 @@
       description
     ) {
 
+      var safeDescription =
+        escapeHTML(
+          description
+        );
+
+
       html +=
         '<p class="business-card-description">' +
-          escapeHTML(
-            description
-          ).slice(
+          safeDescription.slice(
             0,
             150
           ) +
@@ -1537,54 +2041,6 @@
 
 
   /* =======================================================
-     SAFE HREF ATTRIBUTE
-     ======================================================= */
-
-  function hrefAttribute(
-    url
-  ) {
-
-    var value =
-      String(
-        url ||
-        ""
-      );
-
-
-    /*
-     * tel: and https:// are intentionally
-     * supported here.
-     */
-
-    if (
-      !/^tel:/i.test(
-        value
-      ) &&
-      !/^https:\/\//i.test(
-        value
-      ) &&
-      !/^http:\/\//i.test(
-        value
-      )
-    ) {
-
-      return "";
-
-    }
-
-
-    return (
-      'href="' +
-      escapeHTML(
-        value
-      ) +
-      '"'
-    );
-
-  }
-
-
-  /* =======================================================
      RENDER BUSINESS LIST
      ======================================================= */
 
@@ -1598,21 +2054,17 @@
       {};
 
 
-    if (
-      !businessGrid
-    ) {
-
-      businessGrid =
-        getElement(
-          "businessGrid"
-        );
-
-    }
+    refreshDOMReferences();
 
 
     if (
       !businessGrid
     ) {
+
+      console.error(
+        "[UBnux] businessGrid element not found."
+      );
+
 
       return false;
 
@@ -1627,10 +2079,60 @@
         : [];
 
 
+    debug(
+      "[UBnux] renderBusinesses INPUT:",
+      list.length,
+      list
+    );
+
+
+    /*
+     * IMPORTANT:
+     *
+     * Do not aggressively filter here.
+     * The filter system has already produced
+     * filteredBusinesses.
+     *
+     * We only remove explicitly inactive records.
+     */
+
     var activeBusinesses =
-      list.filter(
-        isActive
-      );
+      [];
+
+
+    for (
+      var i = 0;
+      i < list.length;
+      i++
+    ) {
+
+      if (
+        isActive(
+          list[i]
+        )
+      ) {
+
+        activeBusinesses.push(
+          list[i]
+        );
+
+      }
+      else {
+
+        debug(
+          "[UBnux] Explicitly inactive business:",
+          list[i]
+        );
+
+      }
+
+    }
+
+
+    debug(
+      "[UBnux] ACTIVE BUSINESS COUNT:",
+      activeBusinesses.length
+    );
 
 
     if (
@@ -1669,22 +2171,86 @@
 
 
     for (
-      var i = 0;
-      i < activeBusinesses.length;
-      i++
+      var j = 0;
+      j < activeBusinesses.length;
+      j++
     ) {
 
-      html +=
-        createBusinessCard(
-          activeBusinesses[i],
-          i
+      try {
+
+        html +=
+          createBusinessCard(
+            activeBusinesses[j],
+            j
+          );
+
+      }
+      catch (error) {
+
+        console.error(
+          "[UBnux] Business card render error:",
+          error,
+          activeBusinesses[j]
         );
+
+      }
+
+    }
+
+
+    /*
+     * If no card HTML was generated,
+     * show diagnostic information.
+     */
+
+    if (
+      !html
+    ) {
+
+      console.error(
+        "[UBnux] No business card HTML generated.",
+        activeBusinesses
+      );
+
+
+      businessGrid.innerHTML =
+        "";
+
+
+      showEmptyState(
+        true
+      );
+
+
+      updateBusinessCount(
+        0
+      );
+
+
+      updateLoadMore(
+        false
+      );
+
+
+      return false;
 
     }
 
 
     businessGrid.innerHTML =
       html;
+
+
+    var renderedCards =
+      businessGrid.querySelectorAll(
+        ".business-card"
+      );
+
+
+    debug(
+      "[UBnux] BUSINESS CARDS ACTUALLY RENDERED:",
+      renderedCards.length
+    );
 
 
     updateBusinessCount(
@@ -1716,14 +2282,19 @@
 
   function renderCurrentPage() {
 
+    refreshDOMReferences();
+
+
     if (
       !businessGrid
     ) {
 
-      businessGrid =
-        getElement(
-          "businessGrid"
-        );
+      console.error(
+        "[UBnux] Cannot render current page: businessGrid missing."
+      );
+
+
+      return [];
 
     }
 
@@ -1756,6 +2327,32 @@
       PAGE_SIZE;
 
 
+    /*
+     * Protect against invalid page values.
+     */
+
+    if (
+      page <
+      1
+    ) {
+
+      page =
+        1;
+
+    }
+
+
+    if (
+      pageSize <
+      1
+    ) {
+
+      pageSize =
+        PAGE_SIZE;
+
+    }
+
+
     var end =
       page *
       pageSize;
@@ -1768,13 +2365,35 @@
       );
 
 
-    renderBusinesses(
-      visible,
+    debug(
+      "[UBnux] renderCurrentPage:",
       {
-        updateLoadMore:
-          false
+        totalFiltered:
+          filtered.length,
+
+        page:
+          page,
+
+        pageSize:
+          pageSize,
+
+        end:
+          end,
+
+        visible:
+          visible.length
       }
     );
+
+
+    var rendered =
+      renderBusinesses(
+        visible,
+        {
+          updateLoadMore:
+            false
+        }
+      );
 
 
     updateBusinessCount(
@@ -1791,6 +2410,12 @@
     updateLoadMore(
       end <
       filtered.length
+    );
+
+
+    debug(
+      "[UBnux] renderCurrentPage RESULT:",
+      rendered
     );
 
 
@@ -1833,23 +2458,34 @@
         : [];
 
 
-    var nextEnd =
-      (
-        currentPage +
-        1
-      ) *
+    var currentEnd =
+      currentPage *
       pageSize;
 
 
     if (
-      currentPage *
-      pageSize >=
+      currentEnd >=
       filtered.length
     ) {
+
+      updateLoadMore(
+        false
+      );
+
 
       return false;
 
     }
+
+
+    var nextPage =
+      currentPage +
+      1;
+
+
+    var nextEnd =
+      nextPage *
+      pageSize;
 
 
     if (
@@ -1858,8 +2494,7 @@
     ) {
 
       App.setPage(
-        currentPage +
-        1
+        nextPage
       );
 
     }
@@ -1871,8 +2506,7 @@
       App.updateState(
         {
           page:
-            currentPage +
-            1
+            nextPage
         }
       );
 
@@ -1880,53 +2514,6 @@
 
 
     renderCurrentPage();
-
-
-    if (
-      businessGrid
-    ) {
-
-      var cards =
-        businessGrid.querySelectorAll(
-          ".business-card"
-        );
-
-
-      if (
-        cards.length
-      ) {
-
-        var lastCard =
-          cards[
-            cards.length -
-            1
-          ];
-
-
-        setTimeout(
-          function () {
-
-            if (
-              lastCard &&
-              typeof lastCard.scrollIntoView ===
-              "function"
-            ) {
-
-              /*
-               * Do not aggressively scroll
-               * on mobile. The newly loaded
-               * cards should simply appear.
-               */
-
-            }
-
-          },
-          0
-        );
-
-      }
-
-    }
 
 
     updateLoadMore(
@@ -2061,16 +2648,7 @@
     count
   ) {
 
-    if (
-      !businessCount
-    ) {
-
-      businessCount =
-        getElement(
-          "businessCount"
-        );
-
-    }
+    refreshDOMReferences();
 
 
     if (
@@ -2095,7 +2673,9 @@
 
 
     businessCount.dataset.count =
-      total;
+      String(
+        total
+      );
 
   }
 
@@ -2109,16 +2689,7 @@
     state
   ) {
 
-    if (
-      !searchStatus
-    ) {
-
-      searchStatus =
-        getElement(
-          "searchStatus"
-        );
-
-    }
+    refreshDOMReferences();
 
 
     if (
@@ -2185,6 +2756,7 @@
         search +
         '"';
 
+
       return;
 
     }
@@ -2208,6 +2780,7 @@
         ) +
         " available";
 
+
       return;
 
     }
@@ -2230,6 +2803,7 @@
             : " businesses"
         ) +
         " available";
+
 
       return;
 
@@ -2256,16 +2830,7 @@
     show
   ) {
 
-    if (
-      !emptyState
-    ) {
-
-      emptyState =
-        getElement(
-          "emptyState"
-        );
-
-    }
+    refreshDOMReferences();
 
 
     if (
@@ -2283,6 +2848,7 @@
 
       emptyState.hidden =
         false;
+
 
       emptyState.style.display =
         "";
@@ -2305,16 +2871,7 @@
 
   function hideEmptyState() {
 
-    if (
-      !emptyState
-    ) {
-
-      emptyState =
-        getElement(
-          "emptyState"
-        );
-
-    }
+    refreshDOMReferences();
 
 
     if (
@@ -2350,28 +2907,7 @@
     hasMore
   ) {
 
-    if (
-      !loadMoreContainer
-    ) {
-
-      loadMoreContainer =
-        getElement(
-          "loadMoreContainer"
-        );
-
-    }
-
-
-    if (
-      !loadMoreButton
-    ) {
-
-      loadMoreButton =
-        getElement(
-          "loadMoreButton"
-        );
-
-    }
+    refreshDOMReferences();
 
 
     if (
@@ -2426,6 +2962,16 @@
         "true"
       );
 
+
+      if (
+        loadMoreButton
+      ) {
+
+        loadMoreButton.disabled =
+          false;
+
+      }
+
     }
 
   }
@@ -2439,16 +2985,7 @@
     textValue
   ) {
 
-    if (
-      !loadMoreButton
-    ) {
-
-      loadMoreButton =
-        getElement(
-          "loadMoreButton"
-        );
-
-    }
+    refreshDOMReferences();
 
 
     if (
@@ -2460,7 +2997,7 @@
     }
 
 
-    loadMoreButton.innerHTML =
+    loadMoreButton.textContent =
       textValue ||
       "Load More";
 
@@ -2475,16 +3012,7 @@
     count
   ) {
 
-    if (
-      !businessGrid
-    ) {
-
-      businessGrid =
-        getElement(
-          "businessGrid"
-        );
-
-    }
+    refreshDOMReferences();
 
 
     if (
@@ -2555,6 +3083,9 @@
 
   function hideSkeletons() {
 
+    refreshDOMReferences();
+
+
     if (
       !businessGrid
     ) {
@@ -2603,11 +3134,13 @@
 
     var district =
       state.district ||
+      state.selectedDistrict ||
       "";
 
 
     var category =
       state.category ||
+      state.selectedCategory ||
       "";
 
 
@@ -2840,7 +3373,9 @@
       .toLowerCase();
 
 
-    if (!id) {
+    if (
+      !id
+    ) {
 
       return null;
 
@@ -2876,6 +3411,10 @@
       );
 
 
+    /*
+     * First try ID.
+     */
+
     for (
       var i = 0;
       i < combined.length;
@@ -2890,11 +3429,47 @@
 
 
       if (
+        itemId &&
         itemId ===
         id
       ) {
 
         return combined[i];
+
+      }
+
+    }
+
+
+    /*
+     * If temporary business ID was used,
+     * use data-business-index.
+     */
+
+    if (
+      /^business-\d+$/i.test(
+        id
+      )
+    ) {
+
+      var index =
+        parseInt(
+          id.replace(
+            /^business-/i,
+            ""
+          ),
+          10
+        );
+
+
+      if (
+        Number.isFinite(
+          index
+        ) &&
+        filtered[index]
+      ) {
+
+        return filtered[index];
 
       }
 
@@ -2912,6 +3487,9 @@
 
   function bindBusinessCardEvents() {
 
+    refreshDOMReferences();
+
+
     if (
       !businessGrid
     ) {
@@ -2923,8 +3501,14 @@
 
     var cards =
       businessGrid.querySelectorAll(
-        ".business-card"
+        ".business-card:not(.business-card-skeleton)"
       );
+
+
+    debug(
+      "[UBnux] Binding card events:",
+      cards.length
+    );
 
 
     for (
@@ -2937,6 +3521,20 @@
         cards[i];
 
 
+      if (
+        card.dataset.ubnuxBound ===
+        "true"
+      ) {
+
+        continue;
+
+      }
+
+
+      card.dataset.ubnuxBound =
+        "true";
+
+
       card.addEventListener(
         "click",
         function (
@@ -2944,8 +3542,7 @@
         ) {
 
           /*
-           * Don't open modal when the user
-           * clicks Call / WhatsApp links.
+           * Don't open modal for links.
            */
 
           if (
@@ -2982,11 +3579,63 @@
 
 
           if (
+            !business
+          ) {
+
+            /*
+             * Fallback:
+             * Find using card index.
+             */
+
+            var cardIndex =
+              parseInt(
+                this.getAttribute(
+                  "data-business-index"
+                ),
+                10
+              );
+
+
+            var state =
+              typeof App.getState ===
+              "function"
+                ? App.getState()
+                : {};
+
+
+            if (
+              Array.isArray(
+                state.filteredBusinesses
+              ) &&
+              state.filteredBusinesses[
+                cardIndex
+              ]
+            ) {
+
+              business =
+                state.filteredBusinesses[
+                  cardIndex
+                ];
+
+            }
+
+          }
+
+
+          if (
             business
           ) {
 
             openBusiness(
               business
+            );
+
+          }
+          else {
+
+            debug(
+              "[UBnux] Business not found for card:",
+              businessId
             );
 
           }
@@ -3012,11 +3661,6 @@
 
           }
 
-
-          /*
-           * Don't trigger the card
-           * when focus is on a button/link.
-           */
 
           if (
             event.target !==
@@ -3067,16 +3711,7 @@
 
   function setupLoadMore() {
 
-    if (
-      !loadMoreButton
-    ) {
-
-      loadMoreButton =
-        getElement(
-          "loadMoreButton"
-        );
-
-    }
+    refreshDOMReferences();
 
 
     if (
@@ -3134,35 +3769,7 @@
 
   function init() {
 
-    businessGrid =
-      getElement(
-        "businessGrid"
-      );
-
-    businessCount =
-      getElement(
-        "businessCount"
-      );
-
-    emptyState =
-      getElement(
-        "emptyState"
-      );
-
-    loadMoreContainer =
-      getElement(
-        "loadMoreContainer"
-      );
-
-    loadMoreButton =
-      getElement(
-        "loadMoreButton"
-      );
-
-    searchStatus =
-      getElement(
-        "searchStatus"
-      );
+    refreshDOMReferences();
 
 
     setupLoadMore();
@@ -3170,6 +3777,24 @@
 
     App.businessesReady =
       true;
+
+
+    debug(
+      "[UBnux] businesses.js initialized.",
+      {
+        businessGrid:
+          !!businessGrid,
+
+        businessCount:
+          !!businessCount,
+
+        emptyState:
+          !!emptyState,
+
+        loadMore:
+          !!loadMoreButton
+      }
+    );
 
 
     return true;
