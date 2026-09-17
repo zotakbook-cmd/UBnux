@@ -44,6 +44,7 @@
   var CONFIG =
     window.UBNux_CONFIG ||
     window.ZILABIZ_CONFIG ||
+    window.ZilaBizConfig ||
     {};
 
 
@@ -51,21 +52,21 @@
     String(
       CONFIG.ALL_VALUE ||
       "ALL"
-    );
+    ).trim();
 
 
   var DEFAULT_DISTRICT =
     String(
       CONFIG.DEFAULT_DISTRICT ||
       ALL_VALUE
-    );
+    ).trim();
 
 
   var STORAGE_KEY =
     String(
       CONFIG.DISTRICT_STORAGE_KEY ||
       "ubnux_selected_district"
-    );
+    ).trim();
 
 
   var LEGACY_STORAGE_KEYS = [
@@ -81,6 +82,60 @@
     "selectedDistrict"
 
   ];
+
+
+  /* =======================================================
+     DEBUG
+     ======================================================= */
+
+  function debug() {
+
+    if (
+      !CONFIG.DEBUG ||
+      !window.console ||
+      !console.log
+    ) {
+
+      return;
+
+    }
+
+
+    try {
+
+      console.log.apply(
+        console,
+        arguments
+      );
+
+    } catch (error) {}
+
+  }
+
+
+  function debugWarn() {
+
+    if (
+      !CONFIG.DEBUG ||
+      !window.console ||
+      !console.warn
+    ) {
+
+      return;
+
+    }
+
+
+    try {
+
+      console.warn.apply(
+        console,
+        arguments
+      );
+
+    } catch (error) {}
+
+  }
 
 
   /* =======================================================
@@ -149,11 +204,31 @@
 
 
     return String(value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+
+      .replace(
+        /&/g,
+        "&amp;"
+      )
+
+      .replace(
+        /</g,
+        "&lt;"
+      )
+
+      .replace(
+        />/g,
+        "&gt;"
+      )
+
+      .replace(
+        /"/g,
+        "&quot;"
+      )
+
+      .replace(
+        /'/g,
+        "&#039;"
+      );
 
   }
 
@@ -181,7 +256,9 @@
       !Array.isArray(fields)
     ) {
 
-      fields = [fields];
+      fields = [
+        fields
+      ];
 
     }
 
@@ -212,6 +289,10 @@
       }
 
 
+      /* ---------------------------------------------------
+         DIRECT PROPERTY
+         --------------------------------------------------- */
+
       if (
         Object.prototype.hasOwnProperty.call(
           object,
@@ -220,13 +301,17 @@
       ) {
 
         var direct =
-          object[requested];
+          object[
+            requested
+          ];
 
 
         if (
           direct !== null &&
           direct !== undefined &&
-          String(direct).trim() !== ""
+          String(
+            direct
+          ).trim() !== ""
         ) {
 
           return direct;
@@ -236,7 +321,11 @@
       }
 
 
-      var lower =
+      /* ---------------------------------------------------
+         CASE-INSENSITIVE PROPERTY
+         --------------------------------------------------- */
+
+      var lowerRequested =
         String(
           requested
         ).toLowerCase();
@@ -252,7 +341,7 @@
           String(
             keys[j]
           ).toLowerCase() ===
-          lower
+          lowerRequested
         ) {
 
           var value =
@@ -264,7 +353,9 @@
           if (
             value !== null &&
             value !== undefined &&
-            String(value).trim() !== ""
+            String(
+              value
+            ).trim() !== ""
           ) {
 
             return value;
@@ -286,6 +377,10 @@
   }
 
 
+  /* =======================================================
+     TEXT HELPER
+     ======================================================= */
+
   function text(
     object,
     fields,
@@ -302,10 +397,15 @@
     if (
       value === null ||
       value === undefined ||
-      String(value).trim() === ""
+      String(
+        value
+      ).trim() === ""
     ) {
 
-      return fallback || "";
+      return (
+        fallback ||
+        ""
+      );
 
     }
 
@@ -313,6 +413,116 @@
     return String(
       value
     ).trim();
+
+  }
+
+
+  /* =======================================================
+     BOOLEAN HELPER
+     ======================================================= */
+
+  function toBoolean(
+    value,
+    fallback
+  ) {
+
+    if (
+      value === true
+    ) {
+
+      return true;
+
+    }
+
+
+    if (
+      value === false
+    ) {
+
+      return false;
+
+    }
+
+
+    var normalized =
+      String(
+        value === null ||
+        value === undefined
+          ? ""
+          : value
+      )
+        .trim()
+        .toLowerCase();
+
+
+    if (
+      normalized === "true" ||
+      normalized === "1" ||
+      normalized === "yes" ||
+      normalized === "active" ||
+      normalized === "enabled" ||
+      normalized === "on"
+    ) {
+
+      return true;
+
+    }
+
+
+    if (
+      normalized === "false" ||
+      normalized === "0" ||
+      normalized === "no" ||
+      normalized === "inactive" ||
+      normalized === "disabled" ||
+      normalized === "off"
+    ) {
+
+      return false;
+
+    }
+
+
+    return (
+      fallback !== undefined
+        ? fallback
+        : true
+    );
+
+  }
+
+
+  /* =======================================================
+     NUMBER HELPER
+     ======================================================= */
+
+  function toNumber(
+    value,
+    fallback
+  ) {
+
+    var number =
+      Number(
+        value
+      );
+
+
+    if (
+      Number.isFinite(
+        number
+      )
+    ) {
+
+      return number;
+
+    }
+
+
+    return (
+      fallback !== undefined
+        ? fallback
+        : 0
+    );
 
   }
 
@@ -340,17 +550,21 @@
     return text(
       district,
       [
-        "DistrictID",
-        "DistrictId",
+
         "districtId",
+
+        "DistrictID",
+
+        "DistrictId",
+
         "districtID",
+
         "ID",
+
         "Id",
-        "id",
-        "Code",
-        "code",
-        "Value",
-        "value"
+
+        "id"
+
       ],
       ""
     );
@@ -381,15 +595,81 @@
     return text(
       district,
       [
-        "DistrictName",
-        "District Name",
+
         "districtName",
+
+        "DistrictName",
+
+        "District Name",
+
         "Name",
+
         "name",
+
         "Title",
+
         "title",
+
         "Label",
+
         "label"
+
+      ],
+      ""
+    );
+
+  }
+
+
+  /* =======================================================
+     DISTRICT CODE
+     ======================================================= */
+
+  function getDistrictCode(
+    district
+  ) {
+
+    return text(
+      district,
+      [
+
+        "districtCode",
+
+        "DistrictCode",
+
+        "District Code",
+
+        "code",
+
+        "Code"
+
+      ],
+      ""
+    );
+
+  }
+
+
+  /* =======================================================
+     DISTRICT SLUG
+     ======================================================= */
+
+  function getDistrictSlug(
+    district
+  ) {
+
+    return text(
+      district,
+      [
+
+        "slug",
+
+        "Slug",
+
+        "districtSlug",
+
+        "DistrictSlug"
+
       ],
       ""
     );
@@ -408,10 +688,40 @@
     return text(
       district,
       [
-        "State",
+
         "state",
-        "StateName",
-        "stateName"
+
+        "State",
+
+        "stateName",
+
+        "StateName"
+
+      ],
+      ""
+    );
+
+  }
+
+
+  /* =======================================================
+     STATE CODE
+     ======================================================= */
+
+  function getDistrictStateCode(
+    district
+  ) {
+
+    return text(
+      district,
+      [
+
+        "stateCode",
+
+        "StateCode",
+
+        "State Code"
+
       ],
       ""
     );
@@ -430,13 +740,21 @@
     return text(
       district,
       [
-        "Pincode",
+
         "pincode",
+
+        "Pincode",
+
         "PIN",
+
         "Pin",
+
         "pin",
+
         "PostalCode",
+
         "postalCode"
+
       ],
       ""
     );
@@ -455,10 +773,15 @@
     return text(
       district,
       [
-        "Latitude",
+
         "latitude",
-        "Lat",
-        "lat"
+
+        "Latitude",
+
+        "lat",
+
+        "Lat"
+
       ],
       ""
     );
@@ -477,14 +800,112 @@
     return text(
       district,
       [
-        "Longitude",
+
         "longitude",
-        "Lng",
+
+        "Longitude",
+
         "lng",
-        "Long",
-        "long"
+
+        "Lng",
+
+        "long",
+
+        "Long"
+
       ],
       ""
+    );
+
+  }
+
+
+  /* =======================================================
+     ACTIVE STATUS
+     ======================================================= */
+
+  function isDistrictActive(
+    district
+  ) {
+
+    if (
+      !district ||
+      typeof district !== "object"
+    ) {
+
+      return true;
+
+    }
+
+
+    var value =
+      getField(
+        district,
+        [
+
+          "active",
+
+          "Active",
+
+          "isActive",
+
+          "IsActive",
+
+          "status",
+
+          "Status",
+
+          "enabled",
+
+          "Enabled"
+
+        ]
+      );
+
+
+    if (
+      value === "" ||
+      value === null ||
+      value === undefined
+    ) {
+
+      return true;
+
+    }
+
+
+    return toBoolean(
+      value,
+      true
+    );
+
+  }
+
+
+  /* =======================================================
+     SORT ORDER
+     ======================================================= */
+
+  function getSortOrder(
+    district
+  ) {
+
+    return toNumber(
+      getField(
+        district,
+        [
+
+          "sortOrder",
+
+          "SortOrder",
+
+          "Sort",
+
+          "sort"
+
+        ]
+      ),
+      999999
     );
 
   }
@@ -496,27 +917,66 @@
 
   function getDistricts() {
 
+    var districts;
+
+
+    /* ---------------------------------------------------
+       Preferred: App.getDistricts()
+       --------------------------------------------------- */
+
     if (
       typeof App.getDistricts ===
       "function"
     ) {
 
-      var districts =
-        App.getDistricts();
+      try {
+
+        districts =
+          App.getDistricts();
 
 
-      if (
-        Array.isArray(
-          districts
-        )
-      ) {
+        if (
+          Array.isArray(
+            districts
+          )
+        ) {
 
-        return districts;
+          return districts;
+
+        }
+
+
+        /*
+         * Some state implementations may return
+         * { data: [...] }
+         */
+
+        if (
+          districts &&
+          Array.isArray(
+            districts.data
+          )
+        ) {
+
+          return districts.data;
+
+        }
+
+      } catch (error) {
+
+        debugWarn(
+          "[UBnux] App.getDistricts() failed.",
+          error
+        );
 
       }
 
     }
 
+
+    /* ---------------------------------------------------
+       App.state.getDistricts()
+       --------------------------------------------------- */
 
     if (
       App.state &&
@@ -524,22 +984,49 @@
       "function"
     ) {
 
-      var stateDistricts =
-        App.state.getDistricts();
+      try {
+
+        districts =
+          App.state.getDistricts();
 
 
-      if (
-        Array.isArray(
-          stateDistricts
-        )
-      ) {
+        if (
+          Array.isArray(
+            districts
+          )
+        ) {
 
-        return stateDistricts;
+          return districts;
+
+        }
+
+
+        if (
+          districts &&
+          Array.isArray(
+            districts.data
+          )
+        ) {
+
+          return districts.data;
+
+        }
+
+      } catch (error) {
+
+        debugWarn(
+          "[UBnux] App.state.getDistricts() failed.",
+          error
+        );
 
       }
 
     }
 
+
+    /* ---------------------------------------------------
+       App.districts
+       --------------------------------------------------- */
 
     if (
       Array.isArray(
@@ -548,6 +1035,102 @@
     ) {
 
       return App.districts;
+
+    }
+
+
+    /* ---------------------------------------------------
+       Nested data support
+       --------------------------------------------------- */
+
+    if (
+      App.districts &&
+      Array.isArray(
+        App.districts.data
+      )
+    ) {
+
+      return App.districts.data;
+
+    }
+
+
+    return [];
+
+  }
+
+
+  /* =======================================================
+     EXTRACT DISTRICT ARRAY
+     ======================================================= */
+
+  function extractDistrictArray(
+    value
+  ) {
+
+    if (
+      Array.isArray(
+        value
+      )
+    ) {
+
+      return value;
+
+    }
+
+
+    if (
+      !value ||
+      typeof value !== "object"
+    ) {
+
+      return [];
+
+    }
+
+
+    if (
+      Array.isArray(
+        value.data
+      )
+    ) {
+
+      return value.data;
+
+    }
+
+
+    if (
+      value.data &&
+      Array.isArray(
+        value.data.data
+      )
+    ) {
+
+      return value.data.data;
+
+    }
+
+
+    if (
+      Array.isArray(
+        value.districts
+      )
+    ) {
+
+      return value.districts;
+
+    }
+
+
+    if (
+      value.data &&
+      Array.isArray(
+        value.data.districts
+      )
+    ) {
+
+      return value.data.districts;
 
     }
 
@@ -581,10 +1164,33 @@
         id:
           simple,
 
+        districtId:
+          simple,
+
         name:
           simple,
 
+        districtName:
+          simple,
+
+        code:
+          "",
+
+        districtCode:
+          "",
+
+        slug:
+          simple
+            .toLowerCase()
+            .replace(
+              /\s+/g,
+              "-"
+            ),
+
         state:
+          "",
+
+        stateCode:
           "",
 
         pincode:
@@ -596,6 +1202,12 @@
         longitude:
           "",
 
+        active:
+          true,
+
+        sortOrder:
+          999999,
+
         raw:
           district
 
@@ -605,23 +1217,122 @@
 
 
     district =
-      district || {};
+      district ||
+      {};
+
+
+    var id =
+      getDistrictId(
+        district
+      );
+
+
+    var name =
+      getDistrictName(
+        district
+      );
+
+
+    var code =
+      getDistrictCode(
+        district
+      );
+
+
+    var slug =
+      getDistrictSlug(
+        district
+      );
+
+
+    if (
+      !slug &&
+      name
+    ) {
+
+      slug =
+        name
+          .toLowerCase()
+          .replace(
+            /[^a-z0-9]+/g,
+            "-"
+          )
+          .replace(
+            /^-+|-+$/g,
+            ""
+          );
+
+    }
+
+
+    if (
+      !id
+    ) {
+
+      id =
+        code ||
+        slug ||
+        name;
+
+    }
+
+
+    if (
+      !name
+    ) {
+
+      name =
+        code ||
+        slug ||
+        id;
+
+    }
 
 
     return {
 
       id:
-        getDistrictId(
-          district
-        ),
+        String(
+          id || ""
+        ).trim(),
+
+      districtId:
+        String(
+          id || ""
+        ).trim(),
 
       name:
-        getDistrictName(
-          district
-        ),
+        String(
+          name || ""
+        ).trim(),
+
+      districtName:
+        String(
+          name || ""
+        ).trim(),
+
+      code:
+        String(
+          code || ""
+        ).trim(),
+
+      districtCode:
+        String(
+          code || ""
+        ).trim(),
+
+      slug:
+        String(
+          slug || ""
+        ).trim(),
 
       state:
         getDistrictState(
+          district
+        ),
+
+      stateCode:
+        getDistrictStateCode(
           district
         ),
 
@@ -637,6 +1348,16 @@
 
       longitude:
         getLongitude(
+          district
+        ),
+
+      active:
+        isDistrictActive(
+          district
+        ),
+
+      sortOrder:
+        getSortOrder(
           district
         ),
 
@@ -656,10 +1377,14 @@
     districts
   ) {
 
-    if (
-      !Array.isArray(
+    districts =
+      extractDistrictArray(
         districts
-      )
+      );
+
+
+    if (
+      districts.length === 0
     ) {
 
       return [];
@@ -711,6 +1436,19 @@
         }
 
 
+        /*
+         * Do not show explicitly inactive districts.
+         */
+
+        if (
+          normalized.active === false
+        ) {
+
+          return;
+
+        }
+
+
         result.push(
           normalized
         );
@@ -719,7 +1457,113 @@
     );
 
 
-    return result;
+    /* ---------------------------------------------------
+       Sort by sortOrder first, then name
+       --------------------------------------------------- */
+
+    result.sort(
+      function (
+        a,
+        b
+      ) {
+
+        var orderA =
+          Number(
+            a.sortOrder
+          );
+
+
+        var orderB =
+          Number(
+            b.sortOrder
+          );
+
+
+        if (
+          orderA !== orderB
+        ) {
+
+          return (
+            orderA -
+            orderB
+          );
+
+        }
+
+
+        return String(
+          a.name || ""
+        ).localeCompare(
+          String(
+            b.name || ""
+          ),
+          "en",
+          {
+            sensitivity:
+              "base"
+          }
+        );
+
+      }
+    );
+
+
+    /* ---------------------------------------------------
+       Remove duplicate districts
+       --------------------------------------------------- */
+
+    var unique = [];
+
+    var seen = {};
+
+
+    result.forEach(
+      function (
+        district
+      ) {
+
+        var key =
+          String(
+            district.id ||
+            district.code ||
+            district.slug ||
+            district.name
+          )
+            .trim()
+            .toLowerCase();
+
+
+        if (
+          !key
+        ) {
+
+          return;
+
+        }
+
+
+        if (
+          seen[key]
+        ) {
+
+          return;
+
+        }
+
+
+        seen[key] =
+          true;
+
+
+        unique.push(
+          district
+        );
+
+      }
+    );
+
+
+    return unique;
 
   }
 
@@ -740,7 +1584,10 @@
 
     var wanted =
       String(
-        value || ""
+        value === null ||
+        value === undefined
+          ? ""
+          : value
       )
         .trim()
         .toLowerCase();
@@ -755,6 +1602,20 @@
     }
 
 
+    if (
+      wanted ===
+      ALL_VALUE.toLowerCase()
+    ) {
+
+      return null;
+
+    }
+
+
+    /* ---------------------------------------------------
+       Exact matching
+       --------------------------------------------------- */
+
     for (
       var i = 0;
       i < districts.length;
@@ -765,26 +1626,55 @@
         districts[i];
 
 
-      if (
-        String(
-          district.id
-        ).toLowerCase() ===
-        wanted
+      var candidates = [
+
+        district.id,
+
+        district.districtId,
+
+        district.code,
+
+        district.districtCode,
+
+        district.slug,
+
+        district.name,
+
+        district.districtName
+
+      ];
+
+
+      for (
+        var j = 0;
+        j < candidates.length;
+        j++
       ) {
 
-        return district;
+        if (
+          candidates[j] ===
+          null ||
+          candidates[j] ===
+          undefined
+        ) {
 
-      }
+          continue;
+
+        }
 
 
-      if (
-        String(
-          district.name
-        ).toLowerCase() ===
-        wanted
-      ) {
+        if (
+          String(
+            candidates[j]
+          )
+            .trim()
+            .toLowerCase() ===
+          wanted
+        ) {
 
-        return district;
+          return district;
+
+        }
 
       }
 
@@ -805,8 +1695,23 @@
   ) {
 
     if (
-      !value ||
-      String(value)
+      value === null ||
+      value === undefined ||
+      String(
+        value
+      ).trim() === ""
+    ) {
+
+      return "All Districts";
+
+    }
+
+
+    if (
+      String(
+        value
+      )
+        .trim()
         .toUpperCase() ===
       ALL_VALUE.toUpperCase()
     ) {
@@ -823,7 +1728,8 @@
 
 
     if (
-      district
+      district &&
+      district.name
     ) {
 
       return district.name;
@@ -833,7 +1739,7 @@
 
     return String(
       value
-    );
+    ).trim();
 
   }
 
@@ -844,31 +1750,77 @@
 
   function getSelectedDistrict() {
 
+    /* ---------------------------------------------------
+       App.getDistrict()
+       --------------------------------------------------- */
+
     if (
       typeof App.getDistrict ===
       "function"
     ) {
 
-      return (
-        App.getDistrict() ||
-        DEFAULT_DISTRICT
-      );
+      try {
+
+        var current =
+          App.getDistrict();
+
+
+        if (
+          current !== null &&
+          current !== undefined &&
+          String(
+            current
+          ).trim() !== ""
+        ) {
+
+          return String(
+            current
+          ).trim();
+
+        }
+
+      } catch (error) {}
 
     }
 
+
+    /* ---------------------------------------------------
+       App.getSelectedDistrict()
+       --------------------------------------------------- */
 
     if (
       typeof App.getSelectedDistrict ===
       "function"
     ) {
 
-      return (
-        App.getSelectedDistrict() ||
-        DEFAULT_DISTRICT
-      );
+      try {
+
+        var selected =
+          App.getSelectedDistrict();
+
+
+        if (
+          selected !== null &&
+          selected !== undefined &&
+          String(
+            selected
+          ).trim() !== ""
+        ) {
+
+          return String(
+            selected
+          ).trim();
+
+        }
+
+      } catch (error) {}
 
     }
 
+
+    /* ---------------------------------------------------
+       App.state.getDistrict()
+       --------------------------------------------------- */
 
     if (
       App.state &&
@@ -876,18 +1828,74 @@
       "function"
     ) {
 
-      return (
-        App.state.getDistrict() ||
-        DEFAULT_DISTRICT
-      );
+      try {
+
+        var stateDistrict =
+          App.state.getDistrict();
+
+
+        if (
+          stateDistrict !== null &&
+          stateDistrict !== undefined &&
+          String(
+            stateDistrict
+          ).trim() !== ""
+        ) {
+
+          return String(
+            stateDistrict
+          ).trim();
+
+        }
+
+      } catch (error) {}
 
     }
 
 
-    return (
-      App.district ||
-      DEFAULT_DISTRICT
-    );
+    /* ---------------------------------------------------
+       Direct state properties
+       --------------------------------------------------- */
+
+    if (
+      App.state
+    ) {
+
+      var directState =
+        App.state.district ||
+        App.state.selectedDistrict;
+
+
+      if (
+        directState
+      ) {
+
+        return String(
+          directState
+        ).trim();
+
+      }
+
+    }
+
+
+    /* ---------------------------------------------------
+       Direct App property
+       --------------------------------------------------- */
+
+    if (
+      App.district &&
+      typeof App.district !== "object"
+    ) {
+
+      return String(
+        App.district
+      ).trim();
+
+    }
+
+
+    return DEFAULT_DISTRICT;
 
   }
 
@@ -902,41 +1910,147 @@
   ) {
 
     options =
-      options || {};
+      options ||
+      {};
 
 
     var districtValue =
       String(
-        value || ALL_VALUE
-      ).trim();
+        value === null ||
+        value === undefined ||
+        String(
+          value
+        ).trim() === ""
+          ? ALL_VALUE
+          : value
+      )
+        .trim();
 
+
+    /* ---------------------------------------------------
+       Normalize known district to ID
+       --------------------------------------------------- */
+
+    if (
+      districtValue.toUpperCase() !==
+      ALL_VALUE.toUpperCase()
+    ) {
+
+      var found =
+        findDistrict(
+          districtValue
+        );
+
+
+      if (
+        found
+      ) {
+
+        districtValue =
+          found.id ||
+          found.districtId ||
+          found.code ||
+          found.slug ||
+          found.name;
+
+      }
+
+    }
+
+
+    /* ---------------------------------------------------
+       Set through App API
+       --------------------------------------------------- */
 
     if (
       typeof App.setDistrict ===
-      "function"
+      "function" &&
+      App.setDistrict !==
+      setDistrict
     ) {
 
-      App.setDistrict(
-        districtValue
-      );
+      try {
 
-    } else if (
+        App.setDistrict(
+          districtValue
+        );
+
+      } catch (error) {
+
+        debugWarn(
+          "[UBnux] App.setDistrict() failed.",
+          error
+        );
+
+        App.district =
+          districtValue;
+
+      }
+
+    }
+
+    else if (
       App.state &&
       typeof App.state.setDistrict ===
       "function"
     ) {
 
-      App.state.setDistrict(
-        districtValue
-      );
+      try {
 
-    } else {
+        App.state.setDistrict(
+          districtValue
+        );
+
+      } catch (error) {
+
+        debugWarn(
+          "[UBnux] App.state.setDistrict() failed.",
+          error
+        );
+
+        App.district =
+          districtValue;
+
+      }
+
+    }
+
+    else {
 
       App.district =
         districtValue;
 
     }
 
+
+    /* ---------------------------------------------------
+       Direct fallback state values
+       --------------------------------------------------- */
+
+    if (
+      App.state &&
+      typeof App.state !== "function"
+    ) {
+
+      try {
+
+        if (
+          !App.state.district
+        ) {
+
+          App.state.district =
+            districtValue;
+
+        }
+
+      } catch (error) {}
+
+    }
+
+
+    /* ---------------------------------------------------
+       Save
+       --------------------------------------------------- */
 
     if (
       options.save !== false
@@ -949,6 +2063,10 @@
     }
 
 
+    /* ---------------------------------------------------
+       Update UI
+       --------------------------------------------------- */
+
     if (
       options.updateUI !== false
     ) {
@@ -960,7 +2078,7 @@
     }
 
 
-    return true;
+    return districtValue;
 
   }
 
@@ -975,8 +2093,10 @@
 
     var districtValue =
       String(
-        value || ALL_VALUE
-      ).trim();
+        value ||
+        ALL_VALUE
+      )
+        .trim();
 
 
     try {
@@ -1016,7 +2136,9 @@
         saved
       ) {
 
-        return saved;
+        return String(
+          saved
+        ).trim();
 
       }
 
@@ -1037,7 +2159,9 @@
           legacy
         ) {
 
-          return legacy;
+          return String(
+            legacy
+          ).trim();
 
         }
 
@@ -1073,9 +2197,13 @@
           key
         ) {
 
-          localStorage.removeItem(
-            key
-          );
+          try {
+
+            localStorage.removeItem(
+              key
+            );
+
+          } catch (error) {}
 
         }
       );
@@ -1102,7 +2230,8 @@
 
     var normalized =
       String(
-        value || ""
+        value ||
+        ""
       )
         .trim();
 
@@ -1129,6 +2258,95 @@
     return !!findDistrict(
       normalized
     );
+
+  }
+
+
+  /* =======================================================
+     CREATE DISTRICT OPTION
+     ======================================================= */
+
+  function createDistrictOption(
+    district
+  ) {
+
+    if (
+      !district
+    ) {
+
+      return null;
+
+    }
+
+
+    var option =
+      document.createElement(
+        "option"
+      );
+
+
+    var value =
+      district.id ||
+      district.districtId ||
+      district.code ||
+      district.slug ||
+      district.name;
+
+
+    var label =
+      district.name ||
+      district.districtName ||
+      district.code ||
+      district.id;
+
+
+    option.value =
+      String(
+        value || ""
+      ).trim();
+
+
+    option.textContent =
+      String(
+        label || ""
+      ).trim();
+
+
+    /* ---------------------------------------------------
+       Additional useful data
+       --------------------------------------------------- */
+
+    if (
+      district.code
+    ) {
+
+      option.dataset.districtCode =
+        district.code;
+
+    }
+
+
+    if (
+      district.slug
+    ) {
+
+      option.dataset.districtSlug =
+        district.slug;
+
+    }
+
+
+    if (
+      district.state
+    ) {
+
+      option.dataset.state =
+        district.state;
+
+    }
+
+
+    return option;
 
   }
 
@@ -1165,9 +2383,17 @@
       getSelectedDistrict();
 
 
+    /* ---------------------------------------------------
+       Build using DocumentFragment
+       --------------------------------------------------- */
+
     var fragment =
       document.createDocumentFragment();
 
+
+    /* ---------------------------------------------------
+       All Districts
+       --------------------------------------------------- */
 
     var allOption =
       document.createElement(
@@ -1188,34 +2414,39 @@
     );
 
 
+    /* ---------------------------------------------------
+       Districts
+       --------------------------------------------------- */
+
     districts.forEach(
       function (
         district
       ) {
 
         var option =
-          document.createElement(
-            "option"
+          createDistrictOption(
+            district
           );
 
 
-        option.value =
-          district.id ||
-          district.name;
+        if (
+          option &&
+          option.value
+        ) {
 
+          fragment.appendChild(
+            option
+          );
 
-        option.textContent =
-          district.name ||
-          district.id;
-
-
-        fragment.appendChild(
-          option
-        );
+        }
 
       }
     );
 
+
+    /* ---------------------------------------------------
+       Replace options
+       --------------------------------------------------- */
 
     select.innerHTML =
       "";
@@ -1226,9 +2457,19 @@
     );
 
 
+    /* ---------------------------------------------------
+       Sync selected value
+       --------------------------------------------------- */
+
     syncDistrictSelect(
       selected,
       select
+    );
+
+
+    debug(
+      "[UBnux] District dropdown populated:",
+      districts.length
     );
 
 
@@ -1255,20 +2496,27 @@
       !select
     ) {
 
-      return;
+      return false;
 
     }
 
 
     var wanted =
       String(
-        value || ALL_VALUE
-      ).toLowerCase();
+        value ||
+        ALL_VALUE
+      )
+        .trim()
+        .toLowerCase();
 
 
     var found =
       false;
 
+
+    /* ---------------------------------------------------
+       Direct option value
+       --------------------------------------------------- */
 
     Array.prototype.forEach.call(
       select.options,
@@ -1278,21 +2526,45 @@
 
         var optionValue =
           String(
-            option.value
-          ).toLowerCase();
+            option.value ||
+            ""
+          )
+            .trim()
+            .toLowerCase();
 
 
         var optionText =
           String(
-            option.textContent
-          ).toLowerCase();
+            option.textContent ||
+            ""
+          )
+            .trim()
+            .toLowerCase();
+
+
+        var optionCode =
+          String(
+            option.dataset.districtCode ||
+            ""
+          )
+            .trim()
+            .toLowerCase();
+
+
+        var optionSlug =
+          String(
+            option.dataset.districtSlug ||
+            ""
+          )
+            .trim()
+            .toLowerCase();
 
 
         if (
-          optionValue ===
-          wanted ||
-          optionText ===
-          wanted
+          optionValue === wanted ||
+          optionText === wanted ||
+          optionCode === wanted ||
+          optionSlug === wanted
         ) {
 
           select.value =
@@ -1307,14 +2579,110 @@
     );
 
 
+    /* ---------------------------------------------------
+       If not found, try district lookup
+       --------------------------------------------------- */
+
+    if (
+      !found &&
+      wanted !==
+      ALL_VALUE.toLowerCase()
+    ) {
+
+      var district =
+        findDistrict(
+          wanted
+        );
+
+
+      if (
+        district
+      ) {
+
+        var districtValue =
+          String(
+            district.id ||
+            district.districtId ||
+            district.code ||
+            district.slug ||
+            district.name
+          )
+            .trim()
+            .toLowerCase();
+
+
+        Array.prototype.forEach.call(
+          select.options,
+          function (
+            option
+          ) {
+
+            if (
+              String(
+                option.value
+              )
+                .trim()
+                .toLowerCase() ===
+              districtValue
+            ) {
+
+              select.value =
+                option.value;
+
+              found =
+                true;
+
+            }
+
+          }
+        );
+
+      }
+
+    }
+
+
+    /* ---------------------------------------------------
+       Fallback
+       --------------------------------------------------- */
+
     if (
       !found
     ) {
 
-      select.value =
-        ALL_VALUE;
+      var allFound =
+        Array.prototype.some.call(
+          select.options,
+          function (
+            option
+          ) {
+
+            return (
+              String(
+                option.value
+              )
+                .trim()
+                .toLowerCase() ===
+              ALL_VALUE.toLowerCase()
+            );
+
+          }
+        );
+
+
+      if (
+        allFound
+      ) {
+
+        select.value =
+          ALL_VALUE;
+
+      }
 
     }
+
+
+    return found;
 
   }
 
@@ -1362,6 +2730,28 @@
       );
 
     }
+
+
+    var mobileButton =
+      $("mobileDistrictButton");
+
+
+    if (
+      mobileButton
+    ) {
+
+      mobileButton.setAttribute(
+        "aria-label",
+        "Selected district: " +
+        display
+      );
+
+    }
+
+
+    updateDistrictButtons(
+      value
+    );
 
   }
 
@@ -1420,6 +2810,12 @@
     if (
       select
     ) {
+
+      syncDistrictSelect(
+        getSelectedDistrict(),
+        select
+      );
+
 
       setTimeout(
         function () {
@@ -1539,16 +2935,20 @@
       String(
         select.value ||
         ALL_VALUE
-      ).trim();
+      )
+        .trim();
 
 
     setDistrict(
       value,
       {
+
         save:
           true,
+
         updateUI:
           true
+
       }
     );
 
@@ -1580,22 +2980,64 @@
   ) {
 
     options =
-      options || {};
+      options ||
+      {};
 
 
     var districtValue =
       String(
-        value || ALL_VALUE
-      ).trim();
+        value === null ||
+        value === undefined ||
+        String(
+          value
+        ).trim() === ""
+          ? ALL_VALUE
+          : value
+      )
+        .trim();
+
+
+    /* ---------------------------------------------------
+       Resolve ID/code/slug/name to canonical ID
+       --------------------------------------------------- */
+
+    if (
+      districtValue.toUpperCase() !==
+      ALL_VALUE.toUpperCase()
+    ) {
+
+      var district =
+        findDistrict(
+          districtValue
+        );
+
+
+      if (
+        district
+      ) {
+
+        districtValue =
+          district.id ||
+          district.districtId ||
+          district.code ||
+          district.slug ||
+          district.name;
+
+      }
+
+    }
 
 
     setDistrict(
       districtValue,
       {
+
         save:
           options.save !== false,
+
         updateUI:
           true
+
       }
     );
 
@@ -1641,33 +3083,104 @@
 
   function applyDistrictFilter() {
 
+    var applied =
+      false;
+
+
+    /* ---------------------------------------------------
+       Preferred filters module
+       --------------------------------------------------- */
+
     if (
       App.filters &&
       typeof App.filters.applyFilters ===
       "function"
     ) {
 
-      App.filters.applyFilters();
+      try {
 
-    } else if (
-      typeof App.applyFilters ===
-      "function"
-    ) {
+        App.filters.applyFilters();
 
-      App.applyFilters();
+        applied =
+          true;
+
+      } catch (error) {
+
+        debugWarn(
+          "[UBnux] filters.applyFilters() failed.",
+          error
+        );
+
+      }
 
     }
 
+
+    /* ---------------------------------------------------
+       Top-level fallback
+       --------------------------------------------------- */
+
+    else if (
+      typeof App.applyFilters ===
+      "function" &&
+      App.applyFilters !==
+      applyDistrictFilter
+    ) {
+
+      try {
+
+        App.applyFilters();
+
+        applied =
+          true;
+
+      } catch (error) {
+
+        debugWarn(
+          "[UBnux] App.applyFilters() failed.",
+          error
+        );
+
+      }
+
+    }
+
+
+    /* ---------------------------------------------------
+       Reset pagination
+       --------------------------------------------------- */
 
     if (
       typeof App.resetPagination ===
       "function"
     ) {
 
-      App.resetPagination();
+      try {
+
+        App.resetPagination();
+
+      } catch (error) {}
 
     }
 
+    else if (
+      App.businesses &&
+      typeof App.businesses.resetPagination ===
+      "function"
+    ) {
+
+      try {
+
+        App.businesses.resetPagination();
+
+      } catch (error) {}
+
+    }
+
+
+    /* ---------------------------------------------------
+       Render business page
+       --------------------------------------------------- */
 
     if (
       App.businesses &&
@@ -1675,19 +3188,36 @@
       "function"
     ) {
 
-      App.businesses.renderCurrentPage();
+      try {
 
-    } else if (
+        App.businesses.renderCurrentPage();
+
+      } catch (error) {
+
+        debugWarn(
+          "[UBnux] Business render failed.",
+          error
+        );
+
+      }
+
+    }
+
+    else if (
       typeof App.renderCurrentPage ===
       "function"
     ) {
 
-      App.renderCurrentPage();
+      try {
+
+        App.renderCurrentPage();
+
+      } catch (error) {}
 
     }
 
 
-    return true;
+    return applied;
 
   }
 
@@ -1743,7 +3273,8 @@
 
 
     element.textContent =
-      message || "";
+      message ||
+      "";
 
 
     element.hidden =
@@ -1811,21 +3342,27 @@
             position
           ) {
 
-            var latitude =
-              position.coords.latitude;
+            if (
+              !position ||
+              !position.coords
+            ) {
 
+              resolve(
+                null
+              );
 
-            var longitude =
-              position.coords.longitude;
+              return;
+
+            }
 
 
             resolve({
 
               latitude:
-                latitude,
+                position.coords.latitude,
 
               longitude:
-                longitude
+                position.coords.longitude
 
             });
 
@@ -1841,26 +3378,27 @@
 
             if (
               error &&
-              error.code ===
-              1
+              error.code === 1
             ) {
 
               message =
                 "Location permission was denied.";
 
-            } else if (
+            }
+
+            else if (
               error &&
-              error.code ===
-              2
+              error.code === 2
             ) {
 
               message =
                 "Your location could not be determined.";
 
-            } else if (
+            }
+
+            else if (
               error &&
-              error.code ===
-              3
+              error.code === 3
             ) {
 
               message =
@@ -1882,6 +3420,7 @@
           },
 
           {
+
             enableHighAccuracy:
               false,
 
@@ -1913,26 +3452,42 @@
   ) {
 
     var latitude1 =
-      Number(lat1);
+      Number(
+        lat1
+      );
 
 
     var longitude1 =
-      Number(lon1);
+      Number(
+        lon1
+      );
 
 
     var latitude2 =
-      Number(lat2);
+      Number(
+        lat2
+      );
 
 
     var longitude2 =
-      Number(lon2);
+      Number(
+        lon2
+      );
 
 
     if (
-      !Number.isFinite(latitude1) ||
-      !Number.isFinite(longitude1) ||
-      !Number.isFinite(latitude2) ||
-      !Number.isFinite(longitude2)
+      !Number.isFinite(
+        latitude1
+      ) ||
+      !Number.isFinite(
+        longitude1
+      ) ||
+      !Number.isFinite(
+        latitude2
+      ) ||
+      !Number.isFinite(
+        longitude2
+      )
     ) {
 
       return null;
@@ -1993,8 +3548,12 @@
     var c =
       2 *
       Math.atan2(
-        Math.sqrt(a),
-        Math.sqrt(1 - a)
+        Math.sqrt(
+          a
+        ),
+        Math.sqrt(
+          1 - a
+        )
       );
 
 
@@ -2070,16 +3629,15 @@
             distance;
 
 
-          nearest =
-            {
+          nearest = {
 
-              district:
-                district,
+            district:
+              district,
 
-              distance:
-                distance
+            distance:
+              distance
 
-            };
+          };
 
         }
 
@@ -2158,18 +3716,10 @@
 
     } catch (error) {
 
-      if (
-        CONFIG.DEBUG &&
-        window.console &&
-        console.warn
-      ) {
-
-        console.warn(
-          "[UBnux] Backend district detection failed.",
-          error
-        );
-
-      }
+      debugWarn(
+        "[UBnux] Backend district detection failed.",
+        error
+      );
 
     }
 
@@ -2196,8 +3746,16 @@
     }
 
 
+    /*
+     * Handle:
+     * { success:true, data:{...} }
+     */
+
     if (
-      result.data
+      result.data &&
+      !Array.isArray(
+        result.data
+      )
     ) {
 
       result =
@@ -2206,92 +3764,77 @@
     }
 
 
-    var districtValue =
-      getField(
-        result,
-        [
-          "district",
-          "District",
-          "districtId",
-          "DistrictID",
-          "DistrictId"
-        ]
-      );
+    /*
+     * Handle:
+     * { success:true, data:[...] }
+     */
 
+    if (
+      Array.isArray(
+        result.data
+      )
+    ) {
 
-    var districtName =
-      getField(
-        result,
-        [
-          "districtName",
-          "DistrictName",
-          "District Name",
-          "name",
-          "Name"
-        ]
-      );
+      result =
+        result.data[0] ||
+        null;
+
+    }
 
 
     if (
-      districtValue &&
-      typeof districtValue ===
-      "object"
+      !result
     ) {
 
-      var normalized =
+      return null;
+
+    }
+
+
+    /* ---------------------------------------------------
+       Direct district object
+       --------------------------------------------------- */
+
+    if (
+      typeof result === "object"
+    ) {
+
+      var directDistrict =
         normalizeDistrict(
-          districtValue
+          result
         );
 
 
       if (
-        normalized.id ||
-        normalized.name
+        directDistrict.id ||
+        directDistrict.name
       ) {
 
-        return normalized;
-
-      }
-
-    }
-
-
-    if (
-      districtValue
-    ) {
-
-      var found =
-        findDistrict(
-          districtValue
-        );
+        var directFound =
+          findDistrict(
+            directDistrict.id
+          ) ||
+          findDistrict(
+            directDistrict.name
+          ) ||
+          findDistrict(
+            directDistrict.code
+          ) ||
+          findDistrict(
+            directDistrict.slug
+          );
 
 
-      if (
-        found
-      ) {
+        if (
+          directFound
+        ) {
 
-        return found;
+          return directFound;
 
-      }
-
-    }
+        }
 
 
-    if (
-      districtName
-    ) {
-
-      var foundByName =
-        findDistrict(
-          districtName
-        );
-
-
-      if (
-        foundByName
-      ) {
-
-        return foundByName;
+        return directDistrict;
 
       }
 
@@ -2335,6 +3878,9 @@
 
       selectDistrict(
         detected.id ||
+        detected.districtId ||
+        detected.code ||
+        detected.slug ||
         detected.name
       );
 
@@ -2369,6 +3915,9 @@
 
       selectDistrict(
         district.id ||
+        district.districtId ||
+        district.code ||
+        district.slug ||
         district.name
       );
 
@@ -2402,43 +3951,56 @@
 
   function setupDistrictButton() {
 
-    var button =
-      $("districtButton");
+    var buttons = [
+
+      $("districtButton"),
+
+      $("mobileDistrictButton")
+
+    ];
 
 
-    if (
-      !button
-    ) {
-
-      return;
-
-    }
-
-
-    if (
-      button.dataset.ubnuxBound ===
-      "true"
-    ) {
-
-      return;
-
-    }
-
-
-    button.dataset.ubnuxBound =
-      "true";
-
-
-    button.addEventListener(
-      "click",
+    buttons.forEach(
       function (
-        event
+        button
       ) {
 
-        event.preventDefault();
+        if (
+          !button
+        ) {
+
+          return;
+
+        }
 
 
-        openDistrictModal();
+        if (
+          button.dataset.ubnuxBound ===
+          "true"
+        ) {
+
+          return;
+
+        }
+
+
+        button.dataset.ubnuxBound =
+          "true";
+
+
+        button.addEventListener(
+          "click",
+          function (
+            event
+          ) {
+
+            event.preventDefault();
+
+
+            openDistrictModal();
+
+          }
+        );
 
       }
     );
@@ -2523,7 +4085,9 @@
 
             await detectDistrict();
 
-          } finally {
+          }
+
+          finally {
 
             detectButton.disabled =
               false;
@@ -2712,31 +4276,68 @@
       ) {
 
         if (
-          event.key ===
+          event.key !==
           "Escape"
         ) {
 
-          var modal =
-            $("districtModal");
-
-
-          if (
-            modal &&
-            (
-              modal.classList.contains(
-                "active"
-              ) ||
-              modal.classList.contains(
-                "show"
-              )
-            )
-          ) {
-
-            closeDistrictModal();
-
-          }
+          return;
 
         }
+
+
+        var modal =
+          $("districtModal");
+
+
+        if (
+          modal &&
+          (
+            modal.classList.contains(
+              "active"
+            ) ||
+            modal.classList.contains(
+              "show"
+            )
+          )
+        ) {
+
+          closeDistrictModal();
+
+        }
+
+      }
+    );
+
+  }
+
+
+  /* =======================================================
+     UPDATE DISTRICT BUTTONS
+     ======================================================= */
+
+  function updateDistrictButtons(
+    value
+  ) {
+
+    var display =
+      getDisplayName(
+        value
+      );
+
+
+    var buttons =
+      qsa(
+        "[data-selected-district]"
+      );
+
+
+    buttons.forEach(
+      function (
+        button
+      ) {
+
+        button.textContent =
+          display;
 
       }
     );
@@ -2786,40 +4387,6 @@
 
 
   /* =======================================================
-     DISTRICT BUTTON STATE
-     ======================================================= */
-
-  function updateDistrictButtons(
-    value
-  ) {
-
-    var display =
-      getDisplayName(
-        value
-      );
-
-
-    var buttons =
-      qsa(
-        "[data-selected-district]"
-      );
-
-
-    buttons.forEach(
-      function (
-        button
-      ) {
-
-        button.textContent =
-          display;
-
-      }
-    );
-
-  }
-
-
-  /* =======================================================
      INITIAL DISTRICT
      ======================================================= */
 
@@ -2837,11 +4404,19 @@
       current;
 
 
+    /* ---------------------------------------------------
+       Saved district has priority when current is ALL
+       --------------------------------------------------- */
+
     if (
       (
         !current ||
-        current ===
-        ALL_VALUE
+        String(
+          current
+        )
+          .trim()
+          .toUpperCase() ===
+        ALL_VALUE.toUpperCase()
       ) &&
       saved &&
       isValidDistrict(
@@ -2865,7 +4440,19 @@
     }
 
 
+    /* ---------------------------------------------------
+       Validate only if districts are already loaded.
+       This is important because API data may arrive later.
+       --------------------------------------------------- */
+
+    var availableDistricts =
+      normalizeDistricts(
+        getDistricts()
+      );
+
+
     if (
+      availableDistricts.length > 0 &&
       !isValidDistrict(
         selected
       )
@@ -2880,10 +4467,13 @@
     setDistrict(
       selected,
       {
+
         save:
           false,
+
         updateUI:
           true
+
       }
     );
 
@@ -2899,16 +4489,143 @@
 
   function refresh() {
 
+    var districts =
+      normalizeDistricts(
+        getDistricts()
+      );
+
+
     populateDistrictSelect();
 
+
     populateDistrictModal();
+
 
     syncDistrictUI(
       getSelectedDistrict()
     );
 
 
+    debug(
+      "[UBnux] District manager refreshed:",
+      districts.length,
+      "districts"
+    );
+
+
     return true;
+
+  }
+
+
+  /* =======================================================
+     DELAYED REFRESH
+     -------------------------------------------------------
+     API/state data can arrive after district.js init.
+     Run a few lightweight refresh attempts so dropdown
+     receives the API data without requiring page reload.
+     ======================================================= */
+
+  function scheduleDataRefresh() {
+
+    var delays = [
+
+      250,
+
+      750,
+
+      1500,
+
+      3000,
+
+      5000
+
+    ];
+
+
+    delays.forEach(
+      function (
+        delay
+      ) {
+
+        setTimeout(
+          function () {
+
+            var districts =
+              normalizeDistricts(
+                getDistricts()
+              );
+
+
+            if (
+              districts.length > 0
+            ) {
+
+              refresh();
+
+            }
+
+          },
+          delay
+        );
+
+      }
+    );
+
+  }
+
+
+  /* =======================================================
+     LISTEN FOR CUSTOM DATA EVENTS
+     ======================================================= */
+
+  function setupDataEvents() {
+
+    if (
+      document.body.dataset.ubnuxDistrictDataEventsBound ===
+      "true"
+    ) {
+
+      return;
+
+    }
+
+
+    document.body.dataset.ubnuxDistrictDataEventsBound =
+      "true";
+
+
+    var events = [
+
+      "ubnux:data-loaded",
+
+      "ubnux:initial-data-loaded",
+
+      "ubnux:districts-loaded",
+
+      "zilabiz:data-loaded",
+
+      "zilabiz:districts-loaded"
+
+    ];
+
+
+    events.forEach(
+      function (
+        eventName
+      ) {
+
+        document.addEventListener(
+          eventName,
+          function () {
+
+            refresh();
+
+          }
+        );
+
+      }
+    );
 
   }
 
@@ -2927,10 +4644,21 @@
 
     setupEscapeKey();
 
+    setupDataEvents();
+
 
     initializeSelectedDistrict();
 
+
     refresh();
+
+
+    /*
+     * Important:
+     * API data may not exist yet when this file loads.
+     */
+
+    scheduleDataRefresh();
 
 
     return true;
@@ -2945,139 +4673,120 @@
   App.district = {
 
     getDistricts:
-
       getDistricts,
 
     getDistrictId:
-
       getDistrictId,
 
     getDistrictName:
-
       getDistrictName,
 
-    getDistrictState:
+    getDistrictCode:
+      getDistrictCode,
 
+    getDistrictSlug:
+      getDistrictSlug,
+
+    getDistrictState:
       getDistrictState,
 
-    getDistrictPincode:
+    getDistrictStateCode:
+      getDistrictStateCode,
 
+    getDistrictPincode:
       getDistrictPincode,
 
-    normalizeDistrict:
+    getLatitude:
+      getLatitude,
 
+    getLongitude:
+      getLongitude,
+
+    normalizeDistrict:
       normalizeDistrict,
 
     normalizeDistricts:
-
       normalizeDistricts,
 
     findDistrict:
-
       findDistrict,
 
     getDisplayName:
-
       getDisplayName,
 
     getSelectedDistrict:
-
       getSelectedDistrict,
 
     setDistrict:
-
       setDistrict,
 
     saveDistrict:
-
       saveDistrict,
 
     getSavedDistrict:
-
       getSavedDistrict,
 
     clearSavedDistrict:
-
       clearSavedDistrict,
 
     isValidDistrict:
-
       isValidDistrict,
 
     populateDistrictSelect:
-
       populateDistrictSelect,
 
     populateDistrictModal:
-
       populateDistrictModal,
 
     syncDistrictSelect:
-
       syncDistrictSelect,
 
     updateHeaderDistrict:
-
       updateHeaderDistrict,
 
     syncDistrictUI:
-
       syncDistrictUI,
 
     openDistrictModal:
-
       openDistrictModal,
 
     closeDistrictModal:
-
       closeDistrictModal,
 
     saveModalDistrict:
-
       saveModalDistrict,
 
     selectDistrict:
-
       selectDistrict,
 
     filterByDistrict:
-
       filterByDistrict,
 
     resetDistrict:
-
       resetDistrict,
 
     applyDistrictFilter:
-
       applyDistrictFilter,
 
     showLocationMessage:
-
       showLocationMessage,
 
     detectBrowserLocation:
-
       detectBrowserLocation,
 
     detectDistrictFromBackend:
-
       detectDistrictFromBackend,
 
     findNearestDistrict:
-
       findNearestDistrict,
 
     detectDistrict:
-
       detectDistrict,
 
     refresh:
-
       refresh,
 
     init:
-
       init
 
   };
