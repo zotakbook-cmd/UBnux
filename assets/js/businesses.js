@@ -2,17 +2,23 @@
    UBnux - Business Manager
    File: assets/js/businesses.js
 
-   Responsibilities:
-   - Business card rendering
-   - Business list rendering
-   - Pagination
-   - Load more
-   - Business count
-   - Empty state
-   - Skeleton state
-   - Business modal integration
-   - Search/filter result rendering
-   - Robust business status handling
+   RESPONSIBILITIES
+   ---------------------------------------------------------
+   • Business card rendering
+   • Business list rendering
+   • Pagination
+   • Load More
+   • Business count
+   • Empty state
+   • Skeleton state
+   • Business modal integration
+   • Search/filter result rendering
+   • Active/Inactive status handling
+   • Robust field detection
+   • Image fallback
+   • Card event handling
+   • Accessibility
+   • Top-level compatibility aliases
    ========================================================= */
 
 (function (window, document) {
@@ -25,8 +31,8 @@
      ======================================================= */
 
   window.UBnux =
-    window.ZilaBiz ||
     window.UBnux ||
+    window.ZilaBiz ||
     {};
 
   window.ZilaBiz =
@@ -46,35 +52,30 @@
     window.ZilaBizConfig ||
     {};
 
-
   var PAGE_SIZE =
     Number(
       CONFIG.BUSINESS_PAGE_SIZE
-    ) ||
-    18;
-
-
-  /* =======================================================
-     DEBUG
-     ======================================================= */
+    ) || 18;
 
   var DEBUG =
     CONFIG.DEBUG === true;
 
+
+  /* =======================================================
+     DEBUG LOGGER
+     ======================================================= */
 
   function debug() {
 
     if (
       !DEBUG ||
       !window.console ||
-      typeof console.log !==
-      "function"
+      typeof console.log !== "function"
     ) {
 
       return;
 
     }
-
 
     try {
 
@@ -97,13 +98,15 @@
      DOM HELPER
      ======================================================= */
 
-  function getElement(
-    id
-  ) {
+  function getElement(id) {
 
-    return document.getElementById(
-      id
-    );
+    if (!id) {
+
+      return null;
+
+    }
+
+    return document.getElementById(id);
 
   }
 
@@ -113,112 +116,56 @@
      ======================================================= */
 
   var businessGrid =
-    getElement(
-      "businessGrid"
-    );
+    getElement("businessGrid");
 
   var businessCount =
-    getElement(
-      "businessCount"
-    );
+    getElement("businessCount");
 
   var emptyState =
-    getElement(
-      "emptyState"
-    );
+    getElement("emptyState");
 
   var loadMoreContainer =
-    getElement(
-      "loadMoreContainer"
-    );
+    getElement("loadMoreContainer");
 
   var loadMoreButton =
-    getElement(
-      "loadMoreButton"
-    );
+    getElement("loadMoreButton");
 
   var searchStatus =
-    getElement(
-      "searchStatus"
-    );
+    getElement("searchStatus");
 
 
   /* =======================================================
      REFRESH DOM REFERENCES
+
+     Important because this script can initialize before
+     some dynamically-created elements exist.
      ======================================================= */
 
   function refreshDOMReferences() {
 
-    if (
-      !businessGrid
-    ) {
+    businessGrid =
+      businessGrid ||
+      getElement("businessGrid");
 
-      businessGrid =
-        getElement(
-          "businessGrid"
-        );
+    businessCount =
+      businessCount ||
+      getElement("businessCount");
 
-    }
+    emptyState =
+      emptyState ||
+      getElement("emptyState");
 
+    loadMoreContainer =
+      loadMoreContainer ||
+      getElement("loadMoreContainer");
 
-    if (
-      !businessCount
-    ) {
+    loadMoreButton =
+      loadMoreButton ||
+      getElement("loadMoreButton");
 
-      businessCount =
-        getElement(
-          "businessCount"
-        );
-
-    }
-
-
-    if (
-      !emptyState
-    ) {
-
-      emptyState =
-        getElement(
-          "emptyState"
-        );
-
-    }
-
-
-    if (
-      !loadMoreContainer
-    ) {
-
-      loadMoreContainer =
-        getElement(
-          "loadMoreContainer"
-        );
-
-    }
-
-
-    if (
-      !loadMoreButton
-    ) {
-
-      loadMoreButton =
-        getElement(
-          "loadMoreButton"
-        );
-
-    }
-
-
-    if (
-      !searchStatus
-    ) {
-
-      searchStatus =
-        getElement(
-          "searchStatus"
-        );
-
-    }
+    searchStatus =
+      searchStatus ||
+      getElement("searchStatus");
 
   }
 
@@ -235,14 +182,12 @@
 
     if (
       !business ||
-      !Array.isArray(
-        fields
-      )
+      typeof business !== "object" ||
+      !Array.isArray(fields)
     ) {
 
       return (
-        fallback ===
-        undefined
+        fallback === undefined
           ? ""
           : fallback
       );
@@ -250,9 +195,9 @@
     }
 
 
-    /*
-     * Exact property lookup
-     */
+    /* -----------------------------------------------------
+       EXACT LOOKUP
+       ----------------------------------------------------- */
 
     for (
       var i = 0;
@@ -262,7 +207,6 @@
 
       var field =
         fields[i];
-
 
       if (
         Object.prototype.hasOwnProperty.call(
@@ -274,15 +218,10 @@
         var exactValue =
           business[field];
 
-
         if (
-          exactValue !==
-            undefined &&
-          exactValue !==
-            null &&
-          String(
-            exactValue
-          ).trim() !== ""
+          exactValue !== undefined &&
+          exactValue !== null &&
+          String(exactValue).trim() !== ""
         ) {
 
           return exactValue;
@@ -294,15 +233,12 @@
     }
 
 
-    /*
-     * Case-insensitive lookup
-     */
+    /* -----------------------------------------------------
+       CASE-INSENSITIVE LOOKUP
+       ----------------------------------------------------- */
 
     var keys =
-      Object.keys(
-        business
-      );
-
+      Object.keys(business);
 
     for (
       var j = 0;
@@ -311,12 +247,9 @@
     ) {
 
       var target =
-        String(
-          fields[j]
-        )
-        .trim()
-        .toLowerCase();
-
+        String(fields[j])
+          .trim()
+          .toLowerCase();
 
       for (
         var k = 0;
@@ -325,28 +258,18 @@
       ) {
 
         if (
-          String(
-            keys[k]
-          )
-          .trim()
-          .toLowerCase() ===
-          target
+          String(keys[k])
+            .trim()
+            .toLowerCase() === target
         ) {
 
           var value =
-            business[
-              keys[k]
-            ];
-
+            business[keys[k]];
 
           if (
-            value !==
-              undefined &&
-            value !==
-              null &&
-            String(
-              value
-            ).trim() !== ""
+            value !== undefined &&
+            value !== null &&
+            String(value).trim() !== ""
           ) {
 
             return value;
@@ -361,8 +284,7 @@
 
 
     return (
-      fallback ===
-      undefined
+      fallback === undefined
         ? ""
         : fallback
     );
@@ -371,7 +293,7 @@
 
 
   /* =======================================================
-     TEXT
+     TEXT READER
      ======================================================= */
 
   function text(
@@ -387,21 +309,22 @@
         fallback
       );
 
+    if (
+      value === null ||
+      value === undefined
+    ) {
 
-    return String(
-      value ===
-        null ||
-      value ===
-        undefined
-        ? ""
-        : value
-    ).trim();
+      return "";
+
+    }
+
+    return String(value).trim();
 
   }
 
 
   /* =======================================================
-     NUMBER
+     NUMBER READER
      ======================================================= */
 
   function number(
@@ -417,29 +340,77 @@
         ""
       );
 
-
     var parsed =
       parseFloat(
-        String(
-          value
-        )
-        .replace(
-          /,/g,
-          ""
-        )
+        String(value)
+          .replace(/,/g, "")
+          .trim()
       );
 
+    if (
+      Number.isFinite(parsed)
+    ) {
 
-    return Number.isFinite(
-      parsed
-    )
-      ? parsed
-      : (
-          fallback ===
-          undefined
-            ? 0
-            : fallback
-        );
+      return parsed;
+
+    }
+
+    return (
+      fallback === undefined
+        ? 0
+        : fallback
+    );
+
+  }
+
+
+  /* =======================================================
+     BOOLEAN NORMALIZER
+     ======================================================= */
+
+  function toBoolean(value) {
+
+    if (
+      typeof value === "boolean"
+    ) {
+
+      return value;
+
+    }
+
+    var normalized =
+      String(
+        value === null ||
+        value === undefined
+          ? ""
+          : value
+      )
+        .trim()
+        .toLowerCase();
+
+    if (
+      [
+        "true",
+        "yes",
+        "1",
+        "active",
+        "enabled",
+        "open",
+        "online",
+        "available",
+        "published",
+        "approved",
+        "verified",
+        "live",
+        "featured"
+      ].indexOf(normalized) !== -1
+    ) {
+
+      return true;
+
+    }
+
+    return false;
 
   }
 
@@ -448,58 +419,46 @@
      ESCAPE HTML
      ======================================================= */
 
-  function escapeHTML(
-    value
-  ) {
+  function escapeHTML(value) {
 
     if (
       App.utils &&
-      typeof App.utils.escapeHTML ===
-      "function"
+      typeof App.utils.escapeHTML === "function"
     ) {
 
-      return App.utils.escapeHTML(
-        value
-      );
+      try {
+
+        return App.utils.escapeHTML(
+          value
+        );
+
+      }
+      catch (error) {
+
+        debug(
+          "[UBnux] utils.escapeHTML failed:",
+          error
+        );
+
+      }
 
     }
 
-
     if (
-      value ===
-      null ||
-      value ===
-      undefined
+      value === null ||
+      value === undefined
     ) {
 
       return "";
 
     }
 
-
-    return String(
-      value
-    )
-    .replace(
-      /&/g,
-      "&amp;"
-    )
-    .replace(
-      /</g,
-      "&lt;"
-    )
-    .replace(
-      />/g,
-      "&gt;"
-    )
-    .replace(
-      /"/g,
-      "&quot;"
-    )
-    .replace(
-      /'/g,
-      "&#039;"
-    );
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
 
   }
 
@@ -508,64 +467,41 @@
      NORMALIZE IMAGE URL
      ======================================================= */
 
-  function normalizeImageURL(
-    value
-  ) {
+  function normalizeImageURL(value) {
 
     var url =
-      String(
-        value ||
-        ""
-      ).trim();
+      String(value || "").trim();
 
-
-    if (
-      !url
-    ) {
+    if (!url) {
 
       return "";
 
     }
 
-
-    /*
-     * Allow data:image fallback.
-     */
+    /* Data image */
 
     if (
-      /^data:image\//i.test(
-        url
-      )
+      /^data:image\//i.test(url)
     ) {
 
       return url;
 
     }
 
-
-    /*
-     * Allow normal http/https images.
-     */
+    /* HTTP/HTTPS */
 
     if (
-      /^https?:\/\//i.test(
-        url
-      )
+      /^https?:\/\//i.test(url)
     ) {
 
       return url;
 
     }
 
-
-    /*
-     * Allow protocol-relative URLs.
-     */
+    /* Protocol relative */
 
     if (
-      /^\/\//.test(
-        url
-      )
+      /^\/\//.test(url)
     ) {
 
       return (
@@ -575,22 +511,44 @@
 
     }
 
-
-    /*
-     * Relative image URL.
-     */
+    /* Root relative */
 
     if (
-      url.charAt(0) ===
-      "/"
+      url.charAt(0) === "/"
     ) {
 
       return url;
 
     }
 
+    /*
+     * Relative URL.
+     * Keep as-is because GitHub/Cloudflare
+     * may use relative assets.
+     */
 
     return url;
+
+  }
+
+
+  /* =======================================================
+     FALLBACK IMAGE
+     ======================================================= */
+
+  function getFallbackImage() {
+
+    return (
+      "data:image/svg+xml;charset=UTF-8," +
+      encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">' +
+          '<rect width="600" height="400" fill="#f3f4f6"/>' +
+          '<circle cx="300" cy="145" r="55" fill="#d1d5db"/>' +
+          '<path d="M190 330c20-75 75-110 110-110s90 35 110 110" fill="#d1d5db"/>' +
+          '<text x="300" y="370" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" fill="#6b7280">UBnux</text>' +
+        '</svg>'
+      )
+    );
 
   }
 
@@ -599,9 +557,7 @@
      BUSINESS ID
      ======================================================= */
 
-  function getBusinessId(
-    business
-  ) {
+  function getBusinessId(business) {
 
     return text(
       business,
@@ -612,6 +568,12 @@
         "BusinessId",
         "BusinessCode",
         "businessCode",
+        "BusinessUID",
+        "businessUID",
+        "UID",
+        "uid",
+        "Code",
+        "code",
         "ID",
         "Id",
         "id"
@@ -626,15 +588,15 @@
      BUSINESS NAME
      ======================================================= */
 
-  function getBusinessName(
-    business
-  ) {
+  function getBusinessName(business) {
 
     return text(
       business,
       [
         "BusinessName",
         "businessName",
+        "BusinessTitle",
+        "businessTitle",
         "Name",
         "name",
         "Title",
@@ -650,14 +612,15 @@
      CATEGORY
      ======================================================= */
 
-  function getCategoryName(
-    business
-  ) {
+  function getCategoryName(business) {
+
+    /*
+     * Prefer filter module resolver if available.
+     */
 
     if (
       App.filters &&
-      typeof App.filters.getCategoryName ===
-      "function"
+      typeof App.filters.getCategoryName === "function"
     ) {
 
       try {
@@ -667,12 +630,11 @@
             business
           );
 
+        if (filterCategory) {
 
-        if (
-          filterCategory
-        ) {
-
-          return filterCategory;
+          return String(
+            filterCategory
+          ).trim();
 
         }
 
@@ -694,10 +656,10 @@
       [
         "CategoryName",
         "categoryName",
-        "Category",
-        "category",
         "CategoryTitle",
         "categoryTitle",
+        "Category",
+        "category",
         "CategoryID",
         "categoryID",
         "categoryId"
@@ -712,19 +674,17 @@
      DISTRICT
      ======================================================= */
 
-  function getDistrictName(
-    business
-  ) {
+  function getDistrictName(business) {
 
     return text(
       business,
       [
         "DistrictName",
         "districtName",
-        "District",
-        "district",
         "DistrictTitle",
         "districtTitle",
+        "District",
+        "district",
         "DistrictID",
         "districtID",
         "districtId"
@@ -739,9 +699,7 @@
      AREA
      ======================================================= */
 
-  function getArea(
-    business
-  ) {
+  function getArea(business) {
 
     return text(
       business,
@@ -769,9 +727,7 @@
      ADDRESS
      ======================================================= */
 
-  function getAddress(
-    business
-  ) {
+  function getAddress(business) {
 
     return text(
       business,
@@ -781,7 +737,9 @@
         "FullAddress",
         "fullAddress",
         "BusinessAddress",
-        "businessAddress"
+        "businessAddress",
+        "LocationAddress",
+        "locationAddress"
       ],
       ""
     );
@@ -793,9 +751,7 @@
      PHONE
      ======================================================= */
 
-  function getPhone(
-    business
-  ) {
+  function getPhone(business) {
 
     return text(
       business,
@@ -823,9 +779,7 @@
      WHATSAPP
      ======================================================= */
 
-  function getWhatsApp(
-    business
-  ) {
+  function getWhatsApp(business) {
 
     return text(
       business,
@@ -836,7 +790,9 @@
         "WhatsAppNumber",
         "whatsappNumber",
         "WhatsAppMobile",
-        "whatsappMobile"
+        "whatsappMobile",
+        "WhatsAppNo",
+        "whatsappNo"
       ],
       ""
     );
@@ -848,9 +804,7 @@
      LOGO
      ======================================================= */
 
-  function getLogo(
-    business
-  ) {
+  function getLogo(business) {
 
     return text(
       business,
@@ -863,6 +817,8 @@
         "logoUrl",
         "LogoImage",
         "logoImage",
+        "LogoImageURL",
+        "logoImageURL",
         "Image",
         "image",
         "ImageURL",
@@ -870,7 +826,9 @@
         "ImageUrl",
         "imageUrl",
         "BusinessImage",
-        "businessImage"
+        "businessImage",
+        "BusinessLogo",
+        "businessLogo"
       ],
       ""
     );
@@ -882,9 +840,7 @@
      COVER
      ======================================================= */
 
-  function getCover(
-    business
-  ) {
+  function getCover(business) {
 
     return text(
       business,
@@ -900,7 +856,9 @@
         "Banner",
         "banner",
         "BannerImage",
-        "bannerImage"
+        "bannerImage",
+        "BannerURL",
+        "bannerURL"
       ],
       ""
     );
@@ -912,9 +870,7 @@
      RATING
      ======================================================= */
 
-  function getRating(
-    business
-  ) {
+  function getRating(business) {
 
     return number(
       business,
@@ -924,7 +880,9 @@
         "AverageRating",
         "averageRating",
         "AvgRating",
-        "avgRating"
+        "avgRating",
+        "RatingValue",
+        "ratingValue"
       ],
       0
     );
@@ -936,9 +894,7 @@
      REVIEW COUNT
      ======================================================= */
 
-  function getReviewCount(
-    business
-  ) {
+  function getReviewCount(business) {
 
     return number(
       business,
@@ -962,9 +918,7 @@
      DESCRIPTION
      ======================================================= */
 
-  function getDescription(
-    business
-  ) {
+  function getDescription(business) {
 
     return text(
       business,
@@ -976,7 +930,9 @@
         "BusinessDescription",
         "businessDescription",
         "Details",
-        "details"
+        "details",
+        "BusinessDetails",
+        "businessDetails"
       ],
       ""
     );
@@ -988,12 +944,10 @@
      FEATURED
      ======================================================= */
 
-  function isFeatured(
-    business
-  ) {
+  function isFeatured(business) {
 
     var value =
-      text(
+      getValue(
         business,
         [
           "Featured",
@@ -1004,17 +958,9 @@
           "featuredStatus"
         ],
         ""
-      )
-      .toLowerCase();
+      );
 
-
-    return (
-      value === "true" ||
-      value === "yes" ||
-      value === "1" ||
-      value === "featured" ||
-      value === "active"
-    );
+    return toBoolean(value);
 
   }
 
@@ -1023,12 +969,10 @@
      VERIFIED
      ======================================================= */
 
-  function isVerified(
-    business
-  ) {
+  function isVerified(business) {
 
     var value =
-      text(
+      getValue(
         business,
         [
           "Verified",
@@ -1039,49 +983,39 @@
           "verifiedStatus"
         ],
         ""
-      )
-      .toLowerCase();
+      );
 
-
-    return (
-      value === "true" ||
-      value === "yes" ||
-      value === "1" ||
-      value === "verified" ||
-      value === "active"
-    );
+    return toBoolean(value);
 
   }
 
 
   /* =======================================================
      ACTIVE STATUS
+
+     IMPORTANT:
+     -------------------------------------------------------
+     • No status field = visible
+     • Explicit inactive values = hidden
+     • Explicit active values = visible
+     • Unknown values = visible
+
+     This prevents backend fields like:
+     Pending, Listed, Review, etc.
+     from accidentally hiding businesses.
      ======================================================= */
 
-  function isActive(
-    business
-  ) {
+  function isActive(business) {
 
     if (
       !business ||
-      typeof business !==
-      "object"
+      typeof business !== "object"
     ) {
 
       return false;
 
     }
 
-
-    /*
-     * IMPORTANT:
-     *
-     * Only use a field as a visibility field
-     * when that field actually exists.
-     *
-     * This prevents unrelated fields from
-     * accidentally hiding a business.
-     */
 
     var statusFields = [
 
@@ -1112,9 +1046,7 @@
     var foundStatus =
       false;
 
-
-    var raw =
-      "";
+    var raw = "";
 
 
     for (
@@ -1126,7 +1058,6 @@
       var field =
         statusFields[i];
 
-
       if (
         Object.prototype.hasOwnProperty.call(
           business,
@@ -1137,26 +1068,19 @@
         var candidate =
           business[field];
 
-
         if (
-          candidate !==
-            undefined &&
-          candidate !==
-            null &&
-          String(
-            candidate
-          ).trim() !== ""
+          candidate !== undefined &&
+          candidate !== null &&
+          String(candidate).trim() !== ""
         ) {
 
           foundStatus =
             true;
 
           raw =
-            String(
-              candidate
-            )
-            .trim()
-            .toLowerCase();
+            String(candidate)
+              .trim()
+              .toLowerCase();
 
           break;
 
@@ -1168,13 +1092,11 @@
 
 
     /*
-     * No status field:
-     * business should be visible.
+     * No status:
+     * visible by default.
      */
 
-    if (
-      !foundStatus
-    ) {
+    if (!foundStatus) {
 
       return true;
 
@@ -1206,9 +1128,7 @@
 
 
     if (
-      inactiveValues.indexOf(
-        raw
-      ) !== -1
+      inactiveValues.indexOf(raw) !== -1
     ) {
 
       return false;
@@ -1240,9 +1160,7 @@
 
 
     if (
-      activeValues.indexOf(
-        raw
-      ) !== -1
+      activeValues.indexOf(raw) !== -1
     ) {
 
       return true;
@@ -1252,12 +1170,7 @@
 
     /*
      * Unknown status:
-     *
-     * Do NOT hide the business.
-     *
-     * This is important because backend
-     * may use values such as:
-     * Pending, Review, Listed, etc.
+     * keep visible.
      */
 
     return true;
@@ -1266,18 +1179,13 @@
 
 
   /* =======================================================
-     STAR HTML
+     STARS
      ======================================================= */
 
-  function getStars(
-    rating
-  ) {
+  function getStars(rating) {
 
     var value =
-      Number(
-        rating
-      ) || 0;
-
+      Number(rating) || 0;
 
     value =
       Math.max(
@@ -1288,16 +1196,10 @@
         )
       );
 
-
     var rounded =
-      Math.round(
-        value
-      );
+      Math.round(value);
 
-
-    var html =
-      "";
-
+    var html = "";
 
     for (
       var i = 1;
@@ -1307,11 +1209,10 @@
 
       html +=
         i <= rounded
-          ? '<span class="star filled">★</span>'
-          : '<span class="star">☆</span>';
+          ? '<span class="star filled" aria-hidden="true">★</span>'
+          : '<span class="star" aria-hidden="true">☆</span>';
 
     }
-
 
     return html;
 
@@ -1322,28 +1223,18 @@
      FORMAT RATING
      ======================================================= */
 
-  function formatRating(
-    rating
-  ) {
+  function formatRating(rating) {
 
     var value =
-      Number(
-        rating
-      ) || 0;
+      Number(rating) || 0;
 
-
-    if (
-      value <= 0
-    ) {
+    if (value <= 0) {
 
       return "New";
 
     }
 
-
-    return value.toFixed(
-      1
-    );
+    return value.toFixed(1);
 
   }
 
@@ -1352,33 +1243,25 @@
      PHONE URL
      ======================================================= */
 
-  function getPhoneURL(
-    phone
-  ) {
+  function getPhoneURL(phone) {
 
-    if (
-      !phone
-    ) {
+    if (!phone) {
 
       return "";
 
     }
 
-
     var value =
-      String(
-        phone
-      )
-      .replace(
-        /[^\d+]/g,
-        ""
-      );
+      String(phone)
+        .replace(/[^\d+]/g, "");
 
+    if (!value) {
 
-    return value
-      ? "tel:" +
-        value
-      : "";
+      return "";
+
+    }
+
+    return "tel:" + value;
 
   }
 
@@ -1387,32 +1270,24 @@
      WHATSAPP URL
      ======================================================= */
 
-  function getWhatsAppURL(
-    phone
-  ) {
+  function getWhatsAppURL(phone) {
 
-    if (
-      !phone
-    ) {
+    if (!phone) {
 
       return "";
 
     }
 
-
     var value =
-      String(
-        phone
-      )
-      .replace(
-        /\D/g,
-        ""
-      );
+      String(phone)
+        .replace(/\D/g, "");
 
+    /*
+     * Indian 10 digit number.
+     */
 
     if (
-      value.length ===
-      10
+      value.length === 10
     ) {
 
       value =
@@ -1421,16 +1296,18 @@
 
     }
 
+    /*
+     * If number already contains
+     * country code, keep it.
+     */
 
     if (
-      value.length <
-      10
+      value.length < 10
     ) {
 
       return "";
 
     }
-
 
     return (
       "https://wa.me/" +
@@ -1441,64 +1318,64 @@
 
 
   /* =======================================================
-     FALLBACK IMAGE
-     ======================================================= */
-
-  function getFallbackImage() {
-
-    return (
-      "data:image/svg+xml;charset=UTF-8," +
-      encodeURIComponent(
-        '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">' +
-          '<rect width="600" height="400" fill="#f3f4f6"/>' +
-          '<circle cx="300" cy="145" r="55" fill="#d1d5db"/>' +
-          '<path d="M190 330c20-75 75-110 110-110s90 35 110 110" fill="#d1d5db"/>' +
-          '<text x="300" y="370" text-anchor="middle" font-family="Arial" font-size="22" fill="#6b7280">UBnux</text>' +
-        '</svg>'
-      )
-    );
-
-  }
-
-
-  /* =======================================================
      SAFE HREF ATTRIBUTE
      ======================================================= */
 
-  function hrefAttribute(
-    url
-  ) {
+  function hrefAttribute(url) {
 
     var value =
-      String(
-        url ||
-        ""
-      );
-
+      String(url || "");
 
     if (
-      !/^tel:/i.test(
-        value
-      ) &&
-      !/^https:\/\//i.test(
-        value
-      ) &&
-      !/^http:\/\//i.test(
-        value
-      )
+      !/^tel:/i.test(value) &&
+      !/^https:\/\//i.test(value) &&
+      !/^http:\/\//i.test(value)
     ) {
 
       return "";
 
     }
 
-
     return (
       'href="' +
-      escapeHTML(
-        value
-      ) +
+      escapeHTML(value) +
       '"'
+    );
+
+  }
+
+
+  /* =======================================================
+     LOCATION TEXT
+     ======================================================= */
+
+  function getLocationText(business) {
+
+    var area =
+      getArea(business);
+
+    var district =
+      getDistrictName(business);
+
+    if (
+      area &&
+      district &&
+      area.toLowerCase() !==
+        district.toLowerCase()
+    ) {
+
+      return (
+        area +
+        ", " +
+        district
+      );
+
+    }
+
+    return (
+      area ||
+      district ||
+      ""
     );
 
   }
@@ -1515,8 +1392,7 @@
 
     if (
       !business ||
-      typeof business !==
-      "object"
+      typeof business !== "object"
     ) {
 
       return "";
@@ -1525,23 +1401,16 @@
 
 
     /*
-     * Do not silently fail here.
-     *
-     * renderBusinesses() already handles
-     * active filtering.
+     * Explicit inactive records should
+     * never be rendered.
      */
 
-    if (
-      !isActive(
-        business
-      )
-    ) {
+    if (!isActive(business)) {
 
       debug(
-        "[UBnux] Business skipped because inactive:",
+        "[UBnux] Skipping inactive business:",
         business
       );
-
 
       return "";
 
@@ -1549,166 +1418,85 @@
 
 
     var id =
-      getBusinessId(
-        business
-      );
+      getBusinessId(business);
 
 
     /*
-     * If ID is missing, create a temporary
-     * stable index-based ID.
+     * Temporary ID only when backend ID
+     * is genuinely missing.
      */
 
-    if (
-      !id
-    ) {
+    if (!id) {
 
       id =
         "business-" +
-        (
-          Number(
-            index
-          ) || 0
+        String(
+          Number(index) || 0
         );
 
     }
 
 
     var name =
-      getBusinessName(
-        business
-      );
-
+      getBusinessName(business);
 
     var category =
-      getCategoryName(
-        business
-      );
+      getCategoryName(business);
 
-
-    var area =
-      getArea(
-        business
-      );
-
-
-    var district =
-      getDistrictName(
-        business
-      );
-
+    var locationText =
+      getLocationText(business);
 
     var address =
-      getAddress(
-        business
-      );
-
+      getAddress(business);
 
     var phone =
-      getPhone(
-        business
-      );
-
+      getPhone(business);
 
     var whatsapp =
-      getWhatsApp(
-        business
-      ) ||
+      getWhatsApp(business) ||
       phone;
-
 
     var logo =
       normalizeImageURL(
-        getLogo(
-          business
-        )
+        getLogo(business)
       );
-
 
     var cover =
       normalizeImageURL(
-        getCover(
-          business
-        )
+        getCover(business)
       );
-
 
     var image =
       cover ||
       logo ||
       getFallbackImage();
 
-
     var rating =
-      getRating(
-        business
-      );
-
+      getRating(business);
 
     var reviewCount =
-      getReviewCount(
-        business
-      );
-
+      getReviewCount(business);
 
     var featured =
-      isFeatured(
-        business
-      );
-
+      isFeatured(business);
 
     var verified =
-      isVerified(
-        business
-      );
-
+      isVerified(business);
 
     var description =
-      getDescription(
-        business
-      );
-
+      getDescription(business);
 
     var phoneURL =
-      getPhoneURL(
-        phone
-      );
-
+      getPhoneURL(phone);
 
     var whatsappURL =
-      getWhatsAppURL(
-        whatsapp
-      );
-
-
-    var locationText =
-      area ||
-      district;
-
-
-    if (
-      area &&
-      district &&
-      area.toLowerCase() !==
-      district.toLowerCase()
-    ) {
-
-      locationText =
-        area +
-        ", " +
-        district;
-
-    }
-
+      getWhatsAppURL(whatsapp);
 
     var safeId =
-      escapeHTML(
-        id
-      );
+      escapeHTML(id);
 
 
-    var html =
-      "";
+    var html = "";
 
 
     /* =====================================================
@@ -1722,12 +1510,13 @@
       safeId +
       '" ' +
       'data-business-index="' +
-      escapeHTML(
-        index
-      ) +
+      escapeHTML(index) +
       '" ' +
       'tabindex="0" ' +
-      'role="article">';
+      'role="article" ' +
+      'aria-label="' +
+      escapeHTML(name) +
+      '">';
 
 
     /* =====================================================
@@ -1737,26 +1526,19 @@
     html +=
       '<div class="business-card-image-wrap">';
 
-
     html +=
       '<img ' +
       'class="business-card-image" ' +
       'src="' +
-      escapeHTML(
-        image
-      ) +
+      escapeHTML(image) +
       '" ' +
       'alt="' +
-      escapeHTML(
-        name
-      ) +
+      escapeHTML(name) +
       '" ' +
       'loading="lazy" ' +
       'decoding="async" ' +
       'onerror="this.onerror=null;this.src=\'' +
-      escapeHTML(
-        getFallbackImage()
-      ) +
+      escapeHTML(getFallbackImage()) +
       '\'">';
 
 
@@ -1764,38 +1546,38 @@
        BADGES
        ===================================================== */
 
-    html +=
-      '<div class="business-card-badges">';
-
-
     if (
-      featured
-    ) {
-
-      html +=
-        '<span class="business-badge featured">' +
-          '<i class="fa-solid fa-star"></i>' +
-          ' Featured' +
-        '</span>';
-
-    }
-
-
-    if (
+      featured ||
       verified
     ) {
 
       html +=
-        '<span class="business-badge verified">' +
-          '<i class="fa-solid fa-circle-check"></i>' +
-          ' Verified' +
-        '</span>';
+        '<div class="business-card-badges">';
+
+      if (featured) {
+
+        html +=
+          '<span class="business-badge featured">' +
+            '<i class="fa-solid fa-star"></i>' +
+            '<span>Featured</span>' +
+          '</span>';
+
+      }
+
+      if (verified) {
+
+        html +=
+          '<span class="business-badge verified">' +
+            '<i class="fa-solid fa-circle-check"></i>' +
+            '<span>Verified</span>' +
+          '</span>';
+
+      }
+
+      html +=
+        '</div>';
 
     }
-
-
-    html +=
-      '</div>';
 
 
     html +=
@@ -1810,11 +1592,13 @@
       '<div class="business-card-content">';
 
 
+    /* =====================================================
+       NAME
+       ===================================================== */
+
     html +=
       '<h3 class="business-card-title">' +
-        escapeHTML(
-          name
-        ) +
+        escapeHTML(name) +
       '</h3>';
 
 
@@ -1822,17 +1606,13 @@
        CATEGORY
        ===================================================== */
 
-    if (
-      category
-    ) {
+    if (category) {
 
       html +=
         '<div class="business-card-category">' +
-          '<i class="fa-solid fa-tag"></i>' +
+          '<i class="fa-solid fa-tag" aria-hidden="true"></i>' +
           '<span>' +
-            escapeHTML(
-              category
-            ) +
+            escapeHTML(category) +
           '</span>' +
         '</div>';
 
@@ -1843,34 +1623,34 @@
        RATING
        ===================================================== */
 
-    if (
-      rating > 0
-    ) {
+    if (rating > 0) {
 
       html +=
         '<div class="business-card-rating">' +
 
-          '<span class="business-rating-stars">' +
-            getStars(
-              rating
+          '<span class="business-rating-stars" aria-label="Rating ' +
+            escapeHTML(
+              formatRating(rating)
             ) +
+            ' out of 5">' +
+
+            getStars(rating) +
+
           '</span>' +
 
           '<strong>' +
             escapeHTML(
-              formatRating(
-                rating
-              )
+              formatRating(rating)
             ) +
           '</strong>' +
 
           (
             reviewCount > 0
-              ? '<span class="business-review-count">(' +
-                  escapeHTML(
-                    reviewCount
-                  ) +
-                  ')</span>'
+              ? '<span class="business-review-count">' +
+                  '(' +
+                  escapeHTML(reviewCount) +
+                  ')' +
+                '</span>'
               : ""
           ) +
 
@@ -1891,17 +1671,13 @@
        LOCATION
        ===================================================== */
 
-    if (
-      locationText
-    ) {
+    if (locationText) {
 
       html +=
         '<div class="business-card-location">' +
-          '<i class="fa-solid fa-location-dot"></i>' +
+          '<i class="fa-solid fa-location-dot" aria-hidden="true"></i>' +
           '<span>' +
-            escapeHTML(
-              locationText
-            ) +
+            escapeHTML(locationText) +
           '</span>' +
         '</div>';
 
@@ -1912,17 +1688,13 @@
        ADDRESS
        ===================================================== */
 
-    if (
-      address
-    ) {
+    if (address) {
 
       html +=
         '<div class="business-card-address">' +
-          '<i class="fa-solid fa-map-pin"></i>' +
+          '<i class="fa-solid fa-map-pin" aria-hidden="true"></i>' +
           '<span>' +
-            escapeHTML(
-              address
-            ) +
+            escapeHTML(address) +
           '</span>' +
         '</div>';
 
@@ -1933,28 +1705,16 @@
        DESCRIPTION
        ===================================================== */
 
-    if (
-      description
-    ) {
+    if (description) {
 
-      var safeDescription =
-        escapeHTML(
-          description
-        );
-
+      var truncated =
+        description.length > 150
+          ? description.slice(0, 150) + "..."
+          : description;
 
       html +=
         '<p class="business-card-description">' +
-          safeDescription.slice(
-            0,
-            150
-          ) +
-          (
-            description.length >
-            150
-              ? "..."
-              : ""
-          ) +
+          escapeHTML(truncated) +
         '</p>';
 
     }
@@ -1968,19 +1728,19 @@
       '<div class="business-card-actions">';
 
 
-    if (
-      phoneURL
-    ) {
+    /* CALL */
+
+    if (phoneURL) {
 
       html +=
         '<a ' +
         'class="business-card-action call" ' +
-        hrefAttribute(
-          phoneURL
-        ) +
-        '>' +
+        hrefAttribute(phoneURL) +
+        'aria-label="Call ' +
+        escapeHTML(name) +
+        '">' +
 
-          '<i class="fa-solid fa-phone"></i>' +
+          '<i class="fa-solid fa-phone" aria-hidden="true"></i>' +
           '<span>Call</span>' +
 
         '</a>';
@@ -1988,25 +1748,29 @@
     }
 
 
-    if (
-      whatsappURL
-    ) {
+    /* WHATSAPP */
+
+    if (whatsappURL) {
 
       html +=
         '<a ' +
         'class="business-card-action whatsapp" ' +
-        hrefAttribute(
-          whatsappURL
-        ) +
-        ' target="_blank" rel="noopener noreferrer">' +
+        hrefAttribute(whatsappURL) +
+        'target="_blank" ' +
+        'rel="noopener noreferrer" ' +
+        'aria-label="WhatsApp ' +
+        escapeHTML(name) +
+        '">' +
 
-          '<i class="fa-brands fa-whatsapp"></i>' +
+          '<i class="fa-brands fa-whatsapp" aria-hidden="true"></i>' +
           '<span>WhatsApp</span>' +
 
         '</a>';
 
     }
 
+
+    /* VIEW DETAILS */
 
     html +=
       '<button ' +
@@ -2015,9 +1779,12 @@
       'data-business-action="view" ' +
       'data-business-id="' +
       safeId +
+      '" ' +
+      'aria-label="View details of ' +
+      escapeHTML(name) +
       '">' +
 
-        '<i class="fa-solid fa-eye"></i>' +
+        '<i class="fa-solid fa-eye" aria-hidden="true"></i>' +
         '<span>View Details</span>' +
 
       '</button>';
@@ -2050,21 +1817,15 @@
   ) {
 
     options =
-      options ||
-      {};
-
+      options || {};
 
     refreshDOMReferences();
 
-
-    if (
-      !businessGrid
-    ) {
+    if (!businessGrid) {
 
       console.error(
-        "[UBnux] businessGrid element not found."
+        "[UBnux] #businessGrid not found."
       );
-
 
       return false;
 
@@ -2072,33 +1833,23 @@
 
 
     var list =
-      Array.isArray(
-        businesses
-      )
+      Array.isArray(businesses)
         ? businesses
         : [];
 
 
     debug(
-      "[UBnux] renderBusinesses INPUT:",
-      list.length,
-      list
+      "[UBnux] renderBusinesses input:",
+      list.length
     );
 
 
     /*
-     * IMPORTANT:
-     *
-     * Do not aggressively filter here.
-     * The filter system has already produced
-     * filteredBusinesses.
-     *
-     * We only remove explicitly inactive records.
+     * Only remove explicitly inactive
+     * records.
      */
 
-    var activeBusinesses =
-      [];
-
+    var activeBusinesses = [];
 
     for (
       var i = 0;
@@ -2107,20 +1858,10 @@
     ) {
 
       if (
-        isActive(
-          list[i]
-        )
+        isActive(list[i])
       ) {
 
         activeBusinesses.push(
-          list[i]
-        );
-
-      }
-      else {
-
-        debug(
-          "[UBnux] Explicitly inactive business:",
           list[i]
         );
 
@@ -2129,34 +1870,22 @@
     }
 
 
-    debug(
-      "[UBnux] ACTIVE BUSINESS COUNT:",
-      activeBusinesses.length
-    );
-
+    /*
+     * No businesses.
+     */
 
     if (
-      !activeBusinesses.length
+      activeBusinesses.length === 0
     ) {
 
       businessGrid.innerHTML =
         "";
 
+      showEmptyState(true);
 
-      showEmptyState(
-        true
-      );
+      updateBusinessCount(0);
 
-
-      updateBusinessCount(
-        0
-      );
-
-
-      updateLoadMore(
-        false
-      );
-
+      updateLoadMore(false);
 
       return true;
 
@@ -2166,8 +1895,7 @@
     hideEmptyState();
 
 
-    var html =
-      "";
+    var html = "";
 
 
     for (
@@ -2198,39 +1926,20 @@
     }
 
 
-    /*
-     * If no card HTML was generated,
-     * show diagnostic information.
-     */
-
-    if (
-      !html
-    ) {
+    if (!html) {
 
       console.error(
-        "[UBnux] No business card HTML generated.",
-        activeBusinesses
+        "[UBnux] Business HTML generation returned empty."
       );
-
 
       businessGrid.innerHTML =
         "";
 
+      showEmptyState(true);
 
-      showEmptyState(
-        true
-      );
+      updateBusinessCount(0);
 
-
-      updateBusinessCount(
-        0
-      );
-
-
-      updateLoadMore(
-        false
-      );
-
+      updateLoadMore(false);
 
       return false;
 
@@ -2243,12 +1952,12 @@
 
     var renderedCards =
       businessGrid.querySelectorAll(
-        ".business-card"
+        ".business-card:not(.business-card-skeleton)"
       );
 
 
     debug(
-      "[UBnux] BUSINESS CARDS ACTUALLY RENDERED:",
+      "[UBnux] Cards rendered:",
       renderedCards.length
     );
 
@@ -2258,12 +1967,17 @@
     );
 
 
+    /*
+     * Event binding is delegated,
+     * but this keeps compatibility with
+     * existing code.
+     */
+
     bindBusinessCardEvents();
 
 
     if (
-      options.updateLoadMore !==
-      false
+      options.updateLoadMore !== false
     ) {
 
       updateLoadMore();
@@ -2284,15 +1998,11 @@
 
     refreshDOMReferences();
 
-
-    if (
-      !businessGrid
-    ) {
+    if (!businessGrid) {
 
       console.error(
-        "[UBnux] Cannot render current page: businessGrid missing."
+        "[UBnux] Cannot render: #businessGrid missing."
       );
-
 
       return [];
 
@@ -2300,8 +2010,7 @@
 
 
     var state =
-      typeof App.getState ===
-      "function"
+      typeof App.getState === "function"
         ? App.getState()
         : {};
 
@@ -2315,37 +2024,20 @@
 
 
     var page =
-      Number(
-        state.page
-      ) || 1;
-
+      Number(state.page) || 1;
 
     var pageSize =
-      Number(
-        state.pageSize
-      ) ||
+      Number(state.pageSize) ||
       PAGE_SIZE;
 
 
-    /*
-     * Protect against invalid page values.
-     */
+    if (page < 1) {
 
-    if (
-      page <
-      1
-    ) {
-
-      page =
-        1;
+      page = 1;
 
     }
 
-
-    if (
-      pageSize <
-      1
-    ) {
+    if (pageSize < 1) {
 
       pageSize =
         PAGE_SIZE;
@@ -2354,8 +2046,7 @@
 
 
     var end =
-      page *
-      pageSize;
+      page * pageSize;
 
 
     var visible =
@@ -2377,24 +2068,26 @@
         pageSize:
           pageSize,
 
-        end:
-          end,
-
         visible:
           visible.length
       }
     );
 
 
-    var rendered =
-      renderBusinesses(
-        visible,
-        {
-          updateLoadMore:
-            false
-        }
-      );
+    renderBusinesses(
+      visible,
+      {
+        updateLoadMore:
+          false
+      }
+    );
 
+
+    /*
+     * Count should represent
+     * complete filtered result,
+     * not only visible cards.
+     */
 
     updateBusinessCount(
       filtered.length
@@ -2407,15 +2100,12 @@
     );
 
 
+    updateActiveFilters();
+
+
     updateLoadMore(
       end <
       filtered.length
-    );
-
-
-    debug(
-      "[UBnux] renderCurrentPage RESULT:",
-      rendered
     );
 
 
@@ -2431,24 +2121,17 @@
   function loadMore() {
 
     var state =
-      typeof App.getState ===
-      "function"
+      typeof App.getState === "function"
         ? App.getState()
         : {};
 
 
     var currentPage =
-      Number(
-        state.page
-      ) || 1;
-
+      Number(state.page) || 1;
 
     var pageSize =
-      Number(
-        state.pageSize
-      ) ||
+      Number(state.pageSize) ||
       PAGE_SIZE;
-
 
     var filtered =
       Array.isArray(
@@ -2468,10 +2151,7 @@
       filtered.length
     ) {
 
-      updateLoadMore(
-        false
-      );
-
+      updateLoadMore(false);
 
       return false;
 
@@ -2479,18 +2159,11 @@
 
 
     var nextPage =
-      currentPage +
-      1;
-
-
-    var nextEnd =
-      nextPage *
-      pageSize;
+      currentPage + 1;
 
 
     if (
-      typeof App.setPage ===
-      "function"
+      typeof App.setPage === "function"
     ) {
 
       App.setPage(
@@ -2499,27 +2172,18 @@
 
     }
     else if (
-      typeof App.updateState ===
-      "function"
+      typeof App.updateState === "function"
     ) {
 
-      App.updateState(
-        {
-          page:
-            nextPage
-        }
-      );
+      App.updateState({
+        page:
+          nextPage
+      });
 
     }
 
 
     renderCurrentPage();
-
-
-    updateLoadMore(
-      nextEnd <
-      filtered.length
-    );
 
 
     return true;
@@ -2529,6 +2193,9 @@
 
   /* =======================================================
      RESET PAGINATION
+
+     IMPORTANT:
+     State module owns resetPagination().
      ======================================================= */
 
   function resetPagination() {
@@ -2550,9 +2217,7 @@
       "function"
     ) {
 
-      App.setPage(
-        1
-      );
+      App.setPage(1);
 
       return true;
 
@@ -2564,12 +2229,9 @@
       "function"
     ) {
 
-      App.updateState(
-        {
-          page:
-            1
-        }
-      );
+      App.updateState({
+        page: 1
+      });
 
       return true;
 
@@ -2597,6 +2259,14 @@
     ) {
 
       App.filters.applyFilters();
+
+    }
+    else if (
+      typeof App.applyFilters ===
+      "function"
+    ) {
+
+      App.applyFilters();
 
     }
 
@@ -2627,10 +2297,17 @@
       App.filters.applyFilters();
 
     }
+    else if (
+      typeof App.applyFilters ===
+      "function"
+    ) {
+
+      App.applyFilters();
+
+    }
 
 
     resetPagination();
-
 
     renderCurrentPage();
 
@@ -2644,16 +2321,11 @@
      UPDATE BUSINESS COUNT
      ======================================================= */
 
-  function updateBusinessCount(
-    count
-  ) {
+  function updateBusinessCount(count) {
 
     refreshDOMReferences();
 
-
-    if (
-      !businessCount
-    ) {
+    if (!businessCount) {
 
       return;
 
@@ -2661,21 +2333,15 @@
 
 
     var total =
-      Number(
-        count
-      ) || 0;
+      Number(count) || 0;
 
 
     businessCount.textContent =
-      total.toLocaleString(
-        "en-IN"
-      );
+      total.toLocaleString("en-IN");
 
 
     businessCount.dataset.count =
-      String(
-        total
-      );
+      String(total);
 
   }
 
@@ -2691,18 +2357,18 @@
 
     refreshDOMReferences();
 
-
-    if (
-      !searchStatus
-    ) {
+    if (!searchStatus) {
 
       return;
 
     }
 
 
+    state =
+      state || {};
+
+
     var search =
-      state &&
       state.search
         ? String(
             state.search
@@ -2711,51 +2377,33 @@
 
 
     var district =
-      state &&
-      state.selectedDistrict
-        ? state.selectedDistrict
-        : (
-            state &&
-            state.district
-              ? state.district
-              : ""
-          );
+      state.selectedDistrict ||
+      state.district ||
+      "";
 
 
     var category =
-      state &&
-      state.selectedCategory
-        ? state.selectedCategory
-        : (
-            state &&
-            state.category
-              ? state.category
-              : ""
-          );
+      state.selectedCategory ||
+      state.category ||
+      "";
 
 
     var total =
-      Number(
-        count
-      ) || 0;
+      Number(count) || 0;
 
 
-    if (
-      search
-    ) {
+    if (search) {
 
       searchStatus.textContent =
         total +
         (
-          total ===
-          1
+          total === 1
             ? " business found"
             : " businesses found"
         ) +
         ' for "' +
         search +
         '"';
-
 
       return;
 
@@ -2764,22 +2412,19 @@
 
     if (
       district &&
-      String(
-        district
-      ).toUpperCase() !==
-      "ALL"
+      String(district)
+        .toUpperCase() !==
+        "ALL"
     ) {
 
       searchStatus.textContent =
         total +
         (
-          total ===
-          1
+          total === 1
             ? " business"
             : " businesses"
         ) +
         " available";
-
 
       return;
 
@@ -2788,22 +2433,19 @@
 
     if (
       category &&
-      String(
-        category
-      ).toUpperCase() !==
-      "ALL"
+      String(category)
+        .toUpperCase() !==
+        "ALL"
     ) {
 
       searchStatus.textContent =
         total +
         (
-          total ===
-          1
+          total === 1
             ? " business"
             : " businesses"
         ) +
         " available";
-
 
       return;
 
@@ -2813,8 +2455,7 @@
     searchStatus.textContent =
       total +
       (
-        total ===
-        1
+        total === 1
           ? " business available"
           : " businesses available"
       );
@@ -2826,33 +2467,24 @@
      EMPTY STATE
      ======================================================= */
 
-  function showEmptyState(
-    show
-  ) {
+  function showEmptyState(show) {
 
     refreshDOMReferences();
 
-
-    if (
-      !emptyState
-    ) {
+    if (!emptyState) {
 
       return;
 
     }
 
 
-    if (
-      show
-    ) {
+    if (show) {
 
       emptyState.hidden =
         false;
 
-
       emptyState.style.display =
         "";
-
 
       emptyState.setAttribute(
         "aria-hidden",
@@ -2873,10 +2505,7 @@
 
     refreshDOMReferences();
 
-
-    if (
-      !emptyState
-    ) {
+    if (!emptyState) {
 
       return;
 
@@ -2886,10 +2515,8 @@
     emptyState.hidden =
       true;
 
-
     emptyState.style.display =
       "none";
-
 
     emptyState.setAttribute(
       "aria-hidden",
@@ -2909,27 +2536,56 @@
 
     refreshDOMReferences();
 
-
-    if (
-      !loadMoreContainer
-    ) {
+    if (!loadMoreContainer) {
 
       return;
 
     }
 
 
+    /*
+     * If hasMore wasn't supplied,
+     * calculate it from current state.
+     */
+
     if (
-      hasMore
+      typeof hasMore !== "boolean"
     ) {
+
+      var state =
+        typeof App.getState ===
+        "function"
+          ? App.getState()
+          : {};
+
+      var filtered =
+        Array.isArray(
+          state.filteredBusinesses
+        )
+          ? state.filteredBusinesses
+          : [];
+
+      var page =
+        Number(state.page) || 1;
+
+      var pageSize =
+        Number(state.pageSize) ||
+        PAGE_SIZE;
+
+      hasMore =
+        page * pageSize <
+        filtered.length;
+
+    }
+
+
+    if (hasMore) {
 
       loadMoreContainer.hidden =
         false;
 
-
       loadMoreContainer.style.display =
         "";
-
 
       loadMoreContainer.setAttribute(
         "aria-hidden",
@@ -2937,9 +2593,7 @@
       );
 
 
-      if (
-        loadMoreButton
-      ) {
+      if (loadMoreButton) {
 
         loadMoreButton.disabled =
           false;
@@ -2952,10 +2606,8 @@
       loadMoreContainer.hidden =
         true;
 
-
       loadMoreContainer.style.display =
         "none";
-
 
       loadMoreContainer.setAttribute(
         "aria-hidden",
@@ -2963,9 +2615,7 @@
       );
 
 
-      if (
-        loadMoreButton
-      ) {
+      if (loadMoreButton) {
 
         loadMoreButton.disabled =
           false;
@@ -2987,15 +2637,11 @@
 
     refreshDOMReferences();
 
-
-    if (
-      !loadMoreButton
-    ) {
+    if (!loadMoreButton) {
 
       return;
 
     }
-
 
     loadMoreButton.textContent =
       textValue ||
@@ -3008,16 +2654,11 @@
      SKELETONS
      ======================================================= */
 
-  function showSkeletons(
-    count
-  ) {
+  function showSkeletons(count) {
 
     refreshDOMReferences();
 
-
-    if (
-      !businessGrid
-    ) {
+    if (!businessGrid) {
 
       return;
 
@@ -3025,17 +2666,21 @@
 
 
     var total =
-      Number(
-        count
-      ) ||
+      Number(count) ||
       Math.min(
         PAGE_SIZE,
         6
       );
 
 
-    var html =
-      "";
+    total =
+      Math.max(
+        1,
+        total
+      );
+
+
+    var html = "";
 
 
     for (
@@ -3085,10 +2730,7 @@
 
     refreshDOMReferences();
 
-
-    if (
-      !businessGrid
-    ) {
+    if (!businessGrid) {
 
       return;
 
@@ -3107,7 +2749,15 @@
       i++
     ) {
 
-      skeletons[i].remove();
+      if (
+        skeletons[i] &&
+        typeof skeletons[i].remove ===
+        "function"
+      ) {
+
+        skeletons[i].remove();
+
+      }
 
     }
 
@@ -3115,131 +2765,7 @@
 
 
   /* =======================================================
-     UPDATE ACTIVE FILTERS
-     ======================================================= */
-
-  function updateActiveFilters() {
-
-    var state =
-      typeof App.getState ===
-      "function"
-        ? App.getState()
-        : {};
-
-
-    var search =
-      state.search ||
-      "";
-
-
-    var district =
-      state.district ||
-      state.selectedDistrict ||
-      "";
-
-
-    var category =
-      state.category ||
-      state.selectedCategory ||
-      "";
-
-
-    var container =
-      getElement(
-        "activeFilters"
-      );
-
-
-    if (
-      !container
-    ) {
-
-      return;
-
-    }
-
-
-    var html =
-      "";
-
-
-    if (
-      search
-    ) {
-
-      html +=
-        '<span class="active-filter">' +
-          '<i class="fa-solid fa-magnifying-glass"></i>' +
-          escapeHTML(
-            search
-          ) +
-        '</span>';
-
-    }
-
-
-    if (
-      district &&
-      String(
-        district
-      ).toUpperCase() !==
-      "ALL"
-    ) {
-
-      var districtName =
-        getDistrictDisplayName(
-          district
-        );
-
-
-      html +=
-        '<span class="active-filter">' +
-          '<i class="fa-solid fa-location-dot"></i>' +
-          escapeHTML(
-            districtName
-          ) +
-        '</span>';
-
-    }
-
-
-    if (
-      category &&
-      String(
-        category
-      ).toUpperCase() !==
-      "ALL"
-    ) {
-
-      var categoryName =
-        getCategoryDisplayName(
-          category
-        );
-
-
-      html +=
-        '<span class="active-filter">' +
-          '<i class="fa-solid fa-tag"></i>' +
-          escapeHTML(
-            categoryName
-          ) +
-        '</span>';
-
-    }
-
-
-    container.innerHTML =
-      html;
-
-
-    container.hidden =
-      !html;
-
-  }
-
-
-  /* =======================================================
-     DISTRICT DISPLAY NAME
+     GET DISTRICT DISPLAY NAME
      ======================================================= */
 
   function getDistrictDisplayName(
@@ -3252,9 +2778,21 @@
       "function"
     ) {
 
-      return App.district.getDisplayName(
-        value
-      );
+      try {
+
+        return App.district.getDisplayName(
+          value
+        );
+
+      }
+      catch (error) {
+
+        debug(
+          "[UBnux] District display error:",
+          error
+        );
+
+      }
 
     }
 
@@ -3265,23 +2803,34 @@
       "function"
     ) {
 
-      return App.district.getDistrictDisplayName(
-        value
-      );
+      try {
+
+        return App.district.getDistrictDisplayName(
+          value
+        );
+
+      }
+      catch (error2) {
+
+        debug(
+          "[UBnux] District display error:",
+          error2
+        );
+
+      }
 
     }
 
 
     return String(
-      value ||
-      ""
+      value || ""
     );
 
   }
 
 
   /* =======================================================
-     CATEGORY DISPLAY NAME
+     GET CATEGORY DISPLAY NAME
      ======================================================= */
 
   function getCategoryDisplayName(
@@ -3294,37 +2843,155 @@
       "function"
     ) {
 
-      return App.categories.getCategoryDisplayName(
-        value
-      );
+      try {
+
+        return App.categories.getCategoryDisplayName(
+          value
+        );
+
+      }
+      catch (error) {
+
+        debug(
+          "[UBnux] Category display error:",
+          error
+        );
+
+      }
 
     }
 
 
     return String(
-      value ||
-      ""
+      value || ""
     );
 
   }
 
 
   /* =======================================================
-     OPEN BUSINESS
+     UPDATE ACTIVE FILTERS
+     ======================================================= */
+
+  function updateActiveFilters() {
+
+    var container =
+      getElement("activeFilters");
+
+    if (!container) {
+
+      return;
+
+    }
+
+
+    var state =
+      typeof App.getState === "function"
+        ? App.getState()
+        : {};
+
+
+    var search =
+      state.search || "";
+
+    var district =
+      state.selectedDistrict ||
+      state.district ||
+      "";
+
+    var category =
+      state.selectedCategory ||
+      state.category ||
+      "";
+
+
+    var html = "";
+
+
+    if (search) {
+
+      html +=
+        '<span class="active-filter">' +
+          '<i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>' +
+          '<span>' +
+            escapeHTML(search) +
+          '</span>' +
+        '</span>';
+
+    }
+
+
+    if (
+      district &&
+      String(district)
+        .toUpperCase() !==
+        "ALL"
+    ) {
+
+      html +=
+        '<span class="active-filter">' +
+          '<i class="fa-solid fa-location-dot" aria-hidden="true"></i>' +
+          '<span>' +
+            escapeHTML(
+              getDistrictDisplayName(
+                district
+              )
+            ) +
+          '</span>' +
+        '</span>';
+
+    }
+
+
+    if (
+      category &&
+      String(category)
+        .toUpperCase() !==
+        "ALL"
+    ) {
+
+      html +=
+        '<span class="active-filter">' +
+          '<i class="fa-solid fa-tag" aria-hidden="true"></i>' +
+          '<span>' +
+            escapeHTML(
+              getCategoryDisplayName(
+                category
+              )
+            ) +
+          '</span>' +
+        '</span>';
+
+    }
+
+
+    container.innerHTML =
+      html;
+
+    container.hidden =
+      !html;
+
+  }
+
+
+  /* =======================================================
+     OPEN BUSINESS MODAL
      ======================================================= */
 
   function openBusiness(
     business
   ) {
 
-    if (
-      !business
-    ) {
+    if (!business) {
 
       return false;
 
     }
 
+
+    /*
+     * Preferred modal module API.
+     */
 
     if (
       App.modal &&
@@ -3332,19 +2999,68 @@
       "function"
     ) {
 
-      return App.modal.openBusinessModal(
-        business
-      );
+      try {
+
+        return (
+          App.modal.openBusinessModal(
+            business
+          ) !== false
+        );
+
+      }
+      catch (error) {
+
+        console.error(
+          "[UBnux] Business modal error:",
+          error
+        );
+
+      }
 
     }
 
+
+    /*
+     * Top-level compatibility.
+     */
 
     if (
       typeof App.openBusinessModal ===
       "function"
     ) {
 
-      return App.openBusinessModal(
+      try {
+
+        return (
+          App.openBusinessModal(
+            business
+          ) !== false
+        );
+
+      }
+      catch (error2) {
+
+        console.error(
+          "[UBnux] Top-level business modal error:",
+          error2
+        );
+
+      }
+
+    }
+
+
+    /*
+     * Store selected business if
+     * state module supports it.
+     */
+
+    if (
+      typeof App.setSelectedBusiness ===
+      "function"
+    ) {
+
+      App.setSelectedBusiness(
         business
       );
 
@@ -3366,16 +3082,13 @@
 
     var id =
       String(
-        businessId ||
-        ""
+        businessId || ""
       )
-      .trim()
-      .toLowerCase();
+        .trim()
+        .toLowerCase();
 
 
-    if (
-      !id
-    ) {
+    if (!id) {
 
       return null;
 
@@ -3383,8 +3096,7 @@
 
 
     var state =
-      typeof App.getState ===
-      "function"
+      typeof App.getState === "function"
         ? App.getState()
         : {};
 
@@ -3405,36 +3117,30 @@
         : [];
 
 
-    var combined =
-      businesses.concat(
-        filtered
-      );
-
-
     /*
-     * First try ID.
+     * Search filtered first.
      */
 
     for (
       var i = 0;
-      i < combined.length;
+      i < filtered.length;
       i++
     ) {
 
-      var itemId =
+      var filteredId =
         getBusinessId(
-          combined[i]
+          filtered[i]
         )
-        .toLowerCase();
+          .trim()
+          .toLowerCase();
 
 
       if (
-        itemId &&
-        itemId ===
-        id
+        filteredId &&
+        filteredId === id
       ) {
 
-        return combined[i];
+        return filtered[i];
 
       }
 
@@ -3442,14 +3148,41 @@
 
 
     /*
-     * If temporary business ID was used,
-     * use data-business-index.
+     * Then search complete dataset.
+     */
+
+    for (
+      var j = 0;
+      j < businesses.length;
+      j++
+    ) {
+
+      var itemId =
+        getBusinessId(
+          businesses[j]
+        )
+          .trim()
+          .toLowerCase();
+
+
+      if (
+        itemId &&
+        itemId === id
+      ) {
+
+        return businesses[j];
+
+      }
+
+    }
+
+
+    /*
+     * Temporary business-N ID.
      */
 
     if (
-      /^business-\d+$/i.test(
-        id
-      )
+      /^business-\d+$/i.test(id)
     ) {
 
       var index =
@@ -3463,13 +3196,24 @@
 
 
       if (
-        Number.isFinite(
-          index
-        ) &&
-        filtered[index]
+        Number.isFinite(index)
       ) {
 
-        return filtered[index];
+        if (
+          filtered[index]
+        ) {
+
+          return filtered[index];
+
+        }
+
+        if (
+          businesses[index]
+        ) {
+
+          return businesses[index];
+
+        }
 
       }
 
@@ -3482,225 +3226,259 @@
 
 
   /* =======================================================
-     CARD EVENTS
+     CARD EVENT HANDLING
+
+     Uses event delegation so dynamically rendered cards
+     always work without repeatedly attaching many listeners.
      ======================================================= */
+
+  var cardEventsBound =
+    false;
+
 
   function bindBusinessCardEvents() {
 
     refreshDOMReferences();
 
-
-    if (
-      !businessGrid
-    ) {
+    if (!businessGrid) {
 
       return;
 
     }
 
 
-    var cards =
-      businessGrid.querySelectorAll(
-        ".business-card:not(.business-card-skeleton)"
-      );
+    if (cardEventsBound) {
+
+      return;
+
+    }
 
 
-    debug(
-      "[UBnux] Binding card events:",
-      cards.length
-    );
+    cardEventsBound =
+      true;
 
 
-    for (
-      var i = 0;
-      i < cards.length;
-      i++
-    ) {
+    businessGrid.addEventListener(
+      "click",
+      function (event) {
 
-      var card =
-        cards[i];
+        var target =
+          event.target;
 
 
-      if (
-        card.dataset.ubnuxBound ===
-        "true"
-      ) {
+        if (!target) {
 
-        continue;
+          return;
 
-      }
+        }
 
 
-      card.dataset.ubnuxBound =
-        "true";
+        /*
+         * Never intercept normal links.
+         */
+
+        var link =
+          target.closest
+            ? target.closest("a")
+            : null;
 
 
-      card.addEventListener(
-        "click",
-        function (
-          event
-        ) {
+        if (link) {
 
-          /*
-           * Don't open modal for links.
-           */
+          return;
 
-          if (
-            event.target.closest(
-              "a"
-            )
-          ) {
-
-            return;
-
-          }
+        }
 
 
-          var actionButton =
-            event.target.closest(
-              "[data-business-action]"
-            );
+        /*
+         * Ignore skeleton cards.
+         */
+
+        var skeleton =
+          target.closest
+            ? target.closest(
+                ".business-card-skeleton"
+              )
+            : null;
 
 
-          var businessId =
-            actionButton
-              ? actionButton.getAttribute(
-                  "data-business-id"
-                )
-              : this.getAttribute(
-                  "data-business-id"
-                );
+        if (skeleton) {
+
+          return;
+
+        }
 
 
-          var business =
-            findBusinessById(
-              businessId
-            );
+        var card =
+          target.closest
+            ? target.closest(
+                ".business-card"
+              )
+            : null;
 
 
-          if (
-            !business
-          ) {
+        if (!card) {
 
-            /*
-             * Fallback:
-             * Find using card index.
-             */
+          return;
 
-            var cardIndex =
-              parseInt(
-                this.getAttribute(
-                  "data-business-index"
-                ),
-                10
+        }
+
+
+        var action =
+          target.closest
+            ? target.closest(
+                "[data-business-action]"
+              )
+            : null;
+
+
+        var businessId =
+          action
+            ? action.getAttribute(
+                "data-business-id"
+              )
+            : card.getAttribute(
+                "data-business-id"
               );
 
 
-            var state =
-              typeof App.getState ===
-              "function"
-                ? App.getState()
-                : {};
+        var business =
+          findBusinessById(
+            businessId
+          );
 
 
-            if (
-              Array.isArray(
-                state.filteredBusinesses
-              ) &&
+        /*
+         * Fallback by card index.
+         */
+
+        if (!business) {
+
+          var cardIndex =
+            parseInt(
+              card.getAttribute(
+                "data-business-index"
+              ),
+              10
+            );
+
+
+          var state =
+            typeof App.getState ===
+            "function"
+              ? App.getState()
+              : {};
+
+
+          if (
+            Number.isFinite(cardIndex) &&
+            Array.isArray(
+              state.filteredBusinesses
+            ) &&
+            state.filteredBusinesses[
+              cardIndex
+            ]
+          ) {
+
+            business =
               state.filteredBusinesses[
                 cardIndex
-              ]
-            ) {
-
-              business =
-                state.filteredBusinesses[
-                  cardIndex
-                ];
-
-            }
-
-          }
-
-
-          if (
-            business
-          ) {
-
-            openBusiness(
-              business
-            );
-
-          }
-          else {
-
-            debug(
-              "[UBnux] Business not found for card:",
-              businessId
-            );
+              ];
 
           }
 
         }
-      );
 
 
-      card.addEventListener(
-        "keydown",
-        function (
-          event
+        if (business) {
+
+          openBusiness(
+            business
+          );
+
+        }
+        else {
+
+          debug(
+            "[UBnux] Business not found:",
+            businessId
+          );
+
+        }
+
+      }
+    );
+
+
+    businessGrid.addEventListener(
+      "keydown",
+      function (event) {
+
+        if (
+          event.key !== "Enter" &&
+          event.key !== " "
         ) {
 
-          if (
-            event.key !==
-              "Enter" &&
-            event.key !==
-              " "
-          ) {
-
-            return;
-
-          }
-
-
-          if (
-            event.target !==
-            this
-          ) {
-
-            return;
-
-          }
-
-
-          event.preventDefault();
-
-
-          var businessId =
-            this.getAttribute(
-              "data-business-id"
-            );
-
-
-          var business =
-            findBusinessById(
-              businessId
-            );
-
-
-          if (
-            business
-          ) {
-
-            openBusiness(
-              business
-            );
-
-          }
+          return;
 
         }
-      );
 
-    }
+
+        var card =
+          event.target &&
+          event.target.closest
+            ? event.target.closest(
+                ".business-card"
+              )
+            : null;
+
+
+        if (!card) {
+
+          return;
+
+        }
+
+
+        /*
+         * Don't intercept when focus
+         * is on a button/link.
+         */
+
+        if (
+          event.target !== card
+        ) {
+
+          return;
+
+        }
+
+
+        event.preventDefault();
+
+
+        var businessId =
+          card.getAttribute(
+            "data-business-id"
+          );
+
+
+        var business =
+          findBusinessById(
+            businessId
+          );
+
+
+        if (business) {
+
+          openBusiness(
+            business
+          );
+
+        }
+
+      }
+    );
 
   }
 
@@ -3709,39 +3487,35 @@
      LOAD MORE EVENT
      ======================================================= */
 
+  var loadMoreBound =
+    false;
+
+
   function setupLoadMore() {
 
     refreshDOMReferences();
 
-
-    if (
-      !loadMoreButton
-    ) {
+    if (!loadMoreButton) {
 
       return;
 
     }
 
 
-    if (
-      loadMoreButton.dataset.ubnuxBound ===
-      "true"
-    ) {
+    if (loadMoreBound) {
 
       return;
 
     }
 
 
-    loadMoreButton.dataset.ubnuxBound =
-      "true";
+    loadMoreBound =
+      true;
 
 
     loadMoreButton.addEventListener(
       "click",
-      function (
-        event
-      ) {
+      function (event) {
 
         event.preventDefault();
 
@@ -3755,7 +3529,41 @@
         }
 
 
-        loadMore();
+        this.disabled =
+          true;
+
+
+        try {
+
+          loadMore();
+
+        }
+        finally {
+
+          /*
+           * renderCurrentPage()
+           * will update Load More state.
+           */
+
+          setTimeout(
+            function () {
+
+              if (
+                loadMoreButton
+              ) {
+
+                loadMoreButton.disabled =
+                  false;
+
+              }
+
+              updateLoadMore();
+
+            },
+            50
+          );
+
+        }
 
       }
     );
@@ -3764,15 +3572,16 @@
 
 
   /* =======================================================
-     INIT
+     INITIALIZE
      ======================================================= */
 
   function init() {
 
     refreshDOMReferences();
 
-
     setupLoadMore();
+
+    bindBusinessCardEvents();
 
 
     App.businessesReady =
@@ -3807,6 +3616,8 @@
      ======================================================= */
 
   App.businesses = {
+
+    /* Helpers */
 
     escapeHTML:
       escapeHTML,
@@ -3865,6 +3676,21 @@
     formatRating:
       formatRating,
 
+    getPhoneURL:
+      getPhoneURL,
+
+    getWhatsAppURL:
+      getWhatsAppURL,
+
+    normalizeImageURL:
+      normalizeImageURL,
+
+    getFallbackImage:
+      getFallbackImage,
+
+
+    /* Rendering */
+
     createBusinessCard:
       createBusinessCard,
 
@@ -3880,11 +3706,17 @@
     refreshBusinessList:
       refreshBusinessList,
 
+
+    /* Pagination */
+
     loadMore:
       loadMore,
 
     resetPagination:
       resetPagination,
+
+
+    /* UI */
 
     showSkeletons:
       showSkeletons,
@@ -3913,6 +3745,9 @@
     updateActiveFilters:
       updateActiveFilters,
 
+
+    /* Lookup / modal */
+
     getDistrictDisplayName:
       getDistrictDisplayName,
 
@@ -3927,6 +3762,9 @@
 
     bindBusinessCardEvents:
       bindBusinessCardEvents,
+
+
+    /* Initialization */
 
     init:
       init
@@ -3958,6 +3796,10 @@
     loadMore;
 
 
+  App.resetBusinessPagination =
+    resetPagination;
+
+
   App.updateBusinessCount =
     updateBusinessCount;
 
@@ -3974,6 +3816,10 @@
     hideSkeletons;
 
 
+  App.updateBusinessLoadMore =
+    updateLoadMore;
+
+
   App.findBusinessById =
     findBusinessById;
 
@@ -3982,11 +3828,24 @@
     openBusiness;
 
 
+  App.createBusinessCard =
+    createBusinessCard;
+
+
   /* =======================================================
      INITIALIZE
      ======================================================= */
 
   init();
+
+
+  /* =======================================================
+     DEBUG READY MESSAGE
+     ======================================================= */
+
+  debug(
+    "[UBnux] businesses.js ready."
+  );
 
 
 })(window, document);
